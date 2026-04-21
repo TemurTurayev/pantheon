@@ -24,8 +24,10 @@ export function StructurePanel({ round }: Props) {
     (async () => {
       const { createPluginUI } = await import("molstar/lib/mol-plugin-ui");
       const { DefaultPluginUISpec } = await import("molstar/lib/mol-plugin-ui/spec");
+      const { renderReact18 } = await import("molstar/lib/mol-plugin-ui/react18");
       const plugin = await createPluginUI({
         target: ref.current!,
+        render: renderReact18,
         spec: DefaultPluginUISpec(),
       });
       const data = await plugin.builders.data.download(
