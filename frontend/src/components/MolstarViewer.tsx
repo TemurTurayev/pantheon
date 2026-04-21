@@ -13,6 +13,11 @@ interface Props {
   binderColor?: string;           // accent hex for the binder
   focusPocket?: boolean;          // camera pre-set to hotspot pocket
   hideChrome?: boolean;           // suppress built-in HUD + hotspot legend
+  hostFilter?: string;            // CSS filter applied to the canvas host (live tinting)
+  highlightResidues?: number[];   // residues to pop with a ball-and-stick overlay
+  highlightColor?: string;        // accent color for highlighted residues
+  focusOnResidue?: number | null; // residue number to focus the camera on (changes → refocus)
+  focusRadius?: number;           // Å, default 8
   accessibleDescription?: string; // sr-only description
   onResidueClick?: (residue: number) => void;
 }
@@ -31,6 +36,11 @@ export function MolstarViewer({
   binderColor = "#5ccfe6",
   focusPocket = true,
   hideChrome = false,
+  hostFilter,
+  highlightResidues,
+  highlightColor = "#5ccfe6",
+  focusOnResidue = null,
+  focusRadius = 8,
   accessibleDescription,
   onResidueClick,
 }: Props) {
@@ -38,6 +48,7 @@ export function MolstarViewer({
   const pluginRef = useRef<any>(null);
   const structureRef = useRef<any>(null);
   const hotspotSelRef = useRef<any>(null);
+  const highlightSelRef = useRef<any>(null);
   const binderRef = useRef<any>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
@@ -170,6 +181,85 @@ export function MolstarViewer({
     };
   }, [hotspots, status, focusPocket]);
 
+  // Interactive highlight layer — pops the clicked residue as ball-and-stick
+  // in the player's accent color. Re-renders whenever the residue set changes.
+  useEffect(() => {
+    if (status !== "ready") return;
+    const plugin = pluginRef.current;
+    const structure = structureRef.current;
+    if (!plugin || !structure) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { MolScriptBuilder: MS } = await import("molstar/lib/mol-script/language/builder");
+        const { Color } = await import("molstar/lib/mol-util/color");
+
+        if (highlightSelRef.current && highlightSelRef.current.cell) {
+          try {
+            await plugin.build().delete(highlightSelRef.current.cell).commit();
+          } catch { /* noop */ }
+          highlightSelRef.current = null;
+        }
+
+        if (!highlightResidues || highlightResidues.length === 0) return;
+
+        const expr = MS.struct.generator.atomGroups({
+          "residue-test": MS.core.set.has([
+            MS.set(...highlightResidues),
+            MS.ammp("auth_seq_id"),
+          ]),
+        });
+        const sel = await plugin.builders.structure.tryCreateComponentFromExpression(
+          structure,
+          expr,
+          "click-highlight"
+        );
+        if (cancelled || !sel) return;
+        highlightSelRef.current = { cell: sel.cell ?? sel.ref ?? sel };
+
+        const colorInt = parseInt(highlightColor.replace("#", "0x"), 16) || 0x5ccfe6;
+        await plugin.builders.structure.representation.addRepresentation(sel, {
+          type: "ball-and-stick",
+          color: "uniform",
+          colorParams: { value: Color(colorInt) },
+          typeParams: { sizeFactor: 1.3 },
+        });
+      } catch (err) {
+        console.debug("highlight skipped", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [highlightResidues, highlightColor, status]);
+
+  // Programmatic camera focus on a single residue.
+  useEffect(() => {
+    if (status !== "ready" || focusOnResidue == null) return;
+    const plugin = pluginRef.current;
+    const structure = structureRef.current;
+    if (!plugin || !structure) return;
+
+    (async () => {
+      try {
+        const { MolScriptBuilder: MS } = await import("molstar/lib/mol-script/language/builder");
+        const { StructureSelection } = await import("molstar/lib/mol-model/structure/query");
+        const { StructureQueryHelper } = await import(
+          "molstar/lib/mol-plugin-state/helpers/structure-query"
+        );
+        const expr = MS.struct.generator.atomGroups({
+          "residue-test": MS.core.rel.eq([MS.ammp("auth_seq_id"), focusOnResidue]),
+        });
+        const queried = StructureQueryHelper.createAndRun(structure.data ?? structure, expr);
+        const loci = StructureSelection.toLociWithSourceUnits(queried.selection);
+        plugin.managers.camera.focusLoci(loci, { extraRadius: focusRadius, durationMs: 500 });
+      } catch (err) {
+        console.debug("camera focus skipped", err);
+      }
+    })();
+  }, [focusOnResidue, focusRadius, status]);
+
   // Binder overlay — render from raw PDB string in the player's accent color.
   useEffect(() => {
     if (status !== "ready" || !binderPdb) return;
@@ -249,7 +339,15 @@ export function MolstarViewer({
         {autoDescription}
       </div>
 
-      <div ref={hostRef} style={{ position: "absolute", inset: 0 }} />
+      <div
+        ref={hostRef}
+        style={{
+          position: "absolute",
+          inset: 0,
+          filter: hostFilter,
+          transition: "filter 400ms var(--ease-standard)",
+        }}
+      />
 
       {/* HUD overlay — suppressed in fullscreen (host owns its own chrome) */}
       {!hideChrome && <div
