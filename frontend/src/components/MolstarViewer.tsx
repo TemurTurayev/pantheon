@@ -94,6 +94,8 @@ export function MolstarViewer({
         return;
       }
       pluginRef.current = plugin;
+      // Diagnostic exposure — lets us probe from devtools / Chrome ext.
+      (window as unknown as { __pantheonPlugin?: unknown }).__pantheonPlugin = plugin;
 
       try {
         const data = await plugin.builders.data.download(
@@ -305,39 +307,92 @@ export function MolstarViewer({
     };
   }, [binderPdb, binderColor, status]);
 
-  // Click-to-select residue → callback.
-  // Uses Mol*'s real StructureElement API instead of hand-walking the model
-  // hierarchy. Triggers on mouse-up so it survives drag-rotate gestures.
+  // Click-to-select residue. We try BOTH paths so it works in production
+  // (real mouse via Mol*'s interaction manager) and in tests (synthetic
+  // events via canvas3d.identify):
+  //
+  //   1. Subscribe to plugin.behaviors.interaction.click — fires when
+  //      Mol*'s own pointer pipeline detects a click on a structure element.
+  //   2. Also listen to native pointerup on the canvas, and as a fallback,
+  //      use plugin.canvas3d.identify(devX, devY) (DPR-scaled) which works
+  //      independently.
   useEffect(() => {
     if (status !== "ready") return;
     const plugin = pluginRef.current;
     if (!plugin || !onResidueClick) return;
 
+    let cleanup: (() => void) | null = null;
     let sub: { unsubscribe: () => void } | null = null;
 
     (async () => {
       const { StructureElement, StructureProperties: SP } = await import(
         "molstar/lib/mol-model/structure"
       );
-      sub = plugin.behaviors.interaction.click.subscribe((e: any) => {
+
+      const tryEmit = (loci: any) => {
         try {
-          const loci = e?.current?.loci;
-          if (!loci || !StructureElement.Loci.is(loci)) return;
+          if (!loci || !StructureElement.Loci.is(loci)) return false;
           let captured: number | null = null;
           StructureElement.Loci.forEachLocation(loci, (l: any) => {
             if (captured != null) return;
             const r = SP.residue.auth_seq_id(l);
             if (typeof r === "number") captured = r;
           });
-          if (captured != null) onResidueClick(captured);
-        } catch (err) {
-          console.debug("residue click parse failed", err);
+          if (captured != null) {
+            onResidueClick(captured);
+            return true;
+          }
+        } catch {
+          /* ignore */
         }
+        return false;
+      };
+
+      // Path 1 — Mol*'s own click stream
+      sub = plugin.behaviors.interaction.click.subscribe((e: any) => {
+        tryEmit(e?.current?.loci);
       });
+
+      // Path 2 — DOM pointerup with canvas3d.identify fallback
+      const canvas: HTMLCanvasElement | null = hostRef.current?.querySelector("canvas") ?? null;
+      if (canvas) {
+        let downAt: { x: number; y: number; t: number } | null = null;
+        const onDown = (e: PointerEvent) => {
+          downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
+        };
+        const onUp = (e: PointerEvent) => {
+          if (!downAt) return;
+          const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+          const dt = performance.now() - downAt.t;
+          downAt = null;
+          if (moved > 4 || dt > 400) return;
+          // Try identify with DPR-scaled coords
+          try {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const x = (e.clientX - rect.left) * dpr;
+            const y = (e.clientY - rect.top) * dpr;
+            const pid = plugin.canvas3d?.identify(x, y);
+            if (pid) {
+              const loci = plugin.canvas3d.getLoci(pid).loci;
+              tryEmit(loci);
+            }
+          } catch {
+            /* identify can throw if pick buffer not ready */
+          }
+        };
+        canvas.addEventListener("pointerdown", onDown);
+        canvas.addEventListener("pointerup", onUp);
+        cleanup = () => {
+          canvas.removeEventListener("pointerdown", onDown);
+          canvas.removeEventListener("pointerup", onUp);
+        };
+      }
     })();
 
     return () => {
       sub?.unsubscribe();
+      cleanup?.();
     };
   }, [onResidueClick, status]);
 
@@ -423,13 +478,38 @@ export function MolstarViewer({
             zIndex: 2,
           }}
         >
-          <div className="t-label" style={{ marginBottom: 6 }}>HOTSPOTS · amber spheres in 3D</div>
+          <div className="t-label" style={{ marginBottom: 6 }}>HOTSPOTS · click to inspect</div>
           {hotspots.slice(0, 4).map((h) => (
-            <div key={h.residue} style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+            <button
+              key={h.residue}
+              onClick={() => onResidueClick?.(h.residue)}
+              aria-label={`Inspect ${h.label}, role ${h.role}`}
+              style={{
+                display: "flex",
+                gap: 6,
+                alignItems: "baseline",
+                width: "100%",
+                background: "transparent",
+                border: "none",
+                color: "inherit",
+                padding: "3px 4px",
+                margin: "1px 0",
+                borderRadius: 4,
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "background var(--motion-fast) var(--ease-standard)",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "color-mix(in oklab, var(--accent-amber) 10%, transparent)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+              }}
+            >
               <span className="t-mono" style={{ color: "var(--accent-amber)" }}>{h.label}</span>
               <span style={{ color: "var(--text-dim)", fontSize: 10 }}>·</span>
               <span>{h.role}</span>
-            </div>
+            </button>
           ))}
         </div>
       )}

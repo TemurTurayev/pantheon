@@ -71,11 +71,10 @@ function FullscreenInner() {
   }, []);
   useEffect(() => {
     pokeChrome();
-    window.addEventListener("mousemove", pokeChrome);
-    window.addEventListener("keydown", pokeChrome);
+    const events = ["mousemove", "mousedown", "click", "keydown", "wheel", "touchstart"];
+    events.forEach((ev) => window.addEventListener(ev, pokeChrome, true));
     return () => {
-      window.removeEventListener("mousemove", pokeChrome);
-      window.removeEventListener("keydown", pokeChrome);
+      events.forEach((ev) => window.removeEventListener(ev, pokeChrome, true));
       if (hideTimer.current) clearTimeout(hideTimer.current);
     };
   }, [pokeChrome]);
@@ -256,6 +255,57 @@ function FullscreenInner() {
         onComplete={onPerturbComplete}
         onProgress={setPerturbProgress}
       />
+
+      {/* Hotspot quick-pick — clickable list of annotated residues. Sits in
+          a safe band (bottom-right). Provides a guaranteed path to the
+          residue scanner card even if Mol*'s pick fails. */}
+      {showHotspots && round.hotspots.length > 0 && (
+        <aside
+          aria-label="Hotspot quick-pick"
+          style={{
+            position: "absolute",
+            right: 16,
+            bottom: active ? 96 : 16,
+            width: 220,
+            background: "color-mix(in oklab, var(--bg-panel) 92%, transparent)",
+            border: "1px solid var(--bg-line)",
+            borderRadius: 8,
+            padding: 10,
+            zIndex: 22,
+            transition: "bottom 240ms var(--ease-standard)",
+          }}
+        >
+          <div className="t-label" style={{ marginBottom: 6, color: "var(--accent-amber)" }}>
+            HOTSPOTS · click to inspect
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {round.hotspots.map((h) => (
+              <button
+                key={h.residue}
+                onClick={() => onResidueClick(h.residue)}
+                aria-pressed={selectedResidue === h.residue}
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  alignItems: "baseline",
+                  padding: "5px 8px",
+                  background: selectedResidue === h.residue ? "var(--bg-raised)" : "transparent",
+                  border: "1px solid",
+                  borderColor: selectedResidue === h.residue ? "var(--accent-amber)" : "transparent",
+                  borderRadius: 4,
+                  color: "inherit",
+                  cursor: "pointer",
+                  fontSize: 11,
+                  textAlign: "left",
+                }}
+              >
+                <span className="t-mono" style={{ color: "var(--accent-amber)", minWidth: 56 }}>{h.label}</span>
+                <span style={{ color: "var(--text-muted)" }}>{h.role}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
 
       {/* Residue info card — fixed to a safe band so it never clips the toolbox */}
       {selectedResidue != null && (

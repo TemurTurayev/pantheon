@@ -18,14 +18,10 @@ export function ResidueInfoCard({ residue, hotspots, onClear }: Props) {
       role="dialog"
       aria-label={`Residue scan: ${hit?.label ?? residue}`}
       style={{
-        position: "absolute",
-        top: 12,
-        right: 12,
-        width: "min(280px, calc(100% - 24px))",
-        maxHeight: "calc(100% - 24px)",
+        width: 300,
+        maxHeight: "70vh",
         overflowY: "auto",
         padding: 14,
-        zIndex: 3,
         boxShadow: "0 12px 40px rgba(0,0,0,0.4)",
         animation: "scan-in var(--motion-slow) var(--ease-standard)",
       }}

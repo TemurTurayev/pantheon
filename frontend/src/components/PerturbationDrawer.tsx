@@ -196,18 +196,20 @@ export function PerturbationDrawer({ open, onClose, onLaunch, accent = "var(--ac
       aria-hidden={!open}
       style={{
         position: "absolute",
-        right: open ? 0 : -480,
+        right: 0,
         top: 0,
         bottom: 0,
         width: 440,
+        transform: open ? "translateX(0)" : "translateX(100%)",
         background: "color-mix(in oklab, var(--bg-panel) 92%, transparent)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
         borderLeft: "1px solid var(--bg-line)",
-        transition: "right 240ms var(--ease-standard)",
+        transition: "transform 240ms var(--ease-standard)",
         padding: 20,
         overflowY: "auto",
         zIndex: 25,
+        pointerEvents: open ? "auto" : "none",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>

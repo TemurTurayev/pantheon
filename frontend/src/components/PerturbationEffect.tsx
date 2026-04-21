@@ -149,25 +149,26 @@ export function hostStyleFor(active: ActivePerturbation | null, progress: number
 
     case "heatshock": {
       const t = active.temperature ?? 70;
-      const heat = Math.min(1, Math.max(0, (t - 37) / (95 - 37)));
+      // Soft floor at 0.15 — even moderate temperatures wobble a bit.
+      const heat = Math.min(1, Math.max(0.15, (t - 37) / (95 - 37)));
       const intensity = heat * p;
-      // Wobble grows superlinearly with heat × progress
-      const wobble = intensity * intensity;
-      const dx = Math.sin(p * Math.PI * 14) * wobble * 6;
-      const dy = Math.cos(p * Math.PI * 11) * wobble * 4;
-      const rot = Math.sin(p * Math.PI * 9) * wobble * 3;
-      const hue = 25 * intensity;
-      const sat = 1 + 0.6 * intensity;
-      const bright = 1 + 0.08 * intensity;
-      const blur = wobble * 1.2;
-      // Late-stage "denaturation": at high heat × high progress the structure
-      // visibly tears apart — opacity dips, scale grows, blur jumps.
-      const denat = Math.max(0, intensity - 0.55) / 0.45;   // 0 until 55%, ramps to 1
-      const opacity = 1 - 0.5 * denat;
-      const scale = 1 + 0.08 * denat;
-      const finalBlur = blur + denat * 5;
+      // Linear wobble (was squared) — visible immediately at 70°C.
+      const wobble = intensity;
+      const dx = Math.sin(p * Math.PI * 14) * wobble * 14;
+      const dy = Math.cos(p * Math.PI * 11) * wobble * 10;
+      const rot = Math.sin(p * Math.PI * 9) * wobble * 6;
+      const hue = 35 * intensity;
+      const sat = 1 + 0.9 * intensity;
+      const bright = 1 + 0.15 * intensity;
+      const blur = wobble * 2.5;
+      // Denaturation kicks in at intensity > 0.25 (was 0.55) — 70°C × full
+      // duration produces a visibly torn-apart structure.
+      const denat = Math.max(0, intensity - 0.25) / 0.75;
+      const opacity = 1 - 0.6 * denat;
+      const scale = 1 + 0.18 * denat;
+      const finalBlur = blur + denat * 10;
       return {
-        filter: `hue-rotate(${hue.toFixed(0)}deg) saturate(${sat.toFixed(2)}) brightness(${bright.toFixed(2)}) blur(${finalBlur.toFixed(2)}px)`,
+        filter: `hue-rotate(${hue.toFixed(0)}deg) saturate(${sat.toFixed(2)}) brightness(${bright.toFixed(2)}) blur(${finalBlur.toFixed(2)}px) contrast(${(1 + 0.25 * denat).toFixed(2)})`,
         transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotate(${rot.toFixed(2)}deg) scale(${scale.toFixed(3)})`,
         opacity,
       };

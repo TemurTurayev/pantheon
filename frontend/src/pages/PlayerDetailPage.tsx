@@ -81,7 +81,7 @@ export function PlayerDetailPage() {
 
         {/* CENTER — viewer + controls + stress */}
         <section aria-label="Molecular viewer and stress test" style={{ display: "grid", gridTemplateRows: "auto 1fr 300px", gap: 12, overflow: "hidden" }}>
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
             <ViewerControls
               representation={representation}
               colorTheme={colorTheme}
@@ -113,15 +113,23 @@ export function PlayerDetailPage() {
               colorTheme={colorTheme}
               hotspots={round.hotspots}
               binderColor={state.color}
-              focusPocket
+              focusPocket={false}
+              focusOnResidue={selectedResidue}
+              focusRadius={10}
+              highlightResidues={selectedResidue != null ? [selectedResidue] : undefined}
+              highlightColor={state.color}
               accessibleDescription={`3D view of ${round.target_id} (PDB ${round.target_pdb}) with ${round.hotspots.length} hotspots highlighted. Active player: ${state.name}.`}
               onResidueClick={setSelectedResidue}
             />
-            <ResidueInfoCard
-              residue={selectedResidue}
-              hotspots={round.hotspots}
-              onClear={() => setSelectedResidue(null)}
-            />
+            {selectedResidue != null && (
+              <div style={{ position: "absolute", top: 12, right: 12, zIndex: 3 }}>
+                <ResidueInfoCard
+                  residue={selectedResidue}
+                  hotspots={round.hotspots}
+                  onClear={() => setSelectedResidue(null)}
+                />
+              </div>
+            )}
             {scaleDollyOpen && <ScaleDolly onStopChange={setDollyStop} />}
           </div>
           <StressTestPanel stress={activeCandidate?.stress_test ?? null} color={state.color} />
