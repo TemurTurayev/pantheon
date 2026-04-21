@@ -5,6 +5,7 @@ import { CandidateList } from "../components/CandidateList";
 import { MolstarViewer, type ColorTheme, type Representation } from "../components/MolstarViewer";
 import { ReasoningTimeline } from "../components/ReasoningTimeline";
 import { ResidueInfoCard } from "../components/ResidueInfoCard";
+import { ScaleDolly, type DollyStop } from "../components/ScaleDolly";
 import { StressTestPanel } from "../components/StressTestPanel";
 import { TopBar } from "../components/TopBar";
 import { ViewerControls } from "../components/ViewerControls";
@@ -34,6 +35,15 @@ export function PlayerDetailPage() {
   const [colorTheme, setColorTheme] = useState<ColorTheme>("chain-id");
   const [selectedResidue, setSelectedResidue] = useState<number | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
+  const [scaleDollyOpen, setScaleDollyOpen] = useState(false);
+  const [dollyStop, setDollyStop] = useState<DollyStop | null>(null);
+
+  // When the dolly moves through a stop that implies a representation change,
+  // reflect it in the viewer so the cinematic narration matches what you see.
+  const effectiveRepresentation: Representation =
+    dollyStop && dollyStop.representationHint !== "context"
+      ? dollyStop.representationHint
+      : representation;
 
   const state = useMemo(() => round?.players.find((p) => p.name === player), [round, player]);
   const candidates = useMemo(
@@ -65,24 +75,38 @@ export function PlayerDetailPage() {
 
       <div style={BODY}>
         {/* LEFT — reasoning */}
-        <div className="panel" style={{ overflow: "hidden" }}>
+        <section aria-label={`${state.name} reasoning`} className="panel" style={{ overflow: "hidden" }}>
           <ReasoningTimeline entries={reasoning} color={state.color} />
-        </div>
+        </section>
 
         {/* CENTER — viewer + controls + stress */}
-        <div style={{ display: "grid", gridTemplateRows: "auto 1fr 300px", gap: 12, overflow: "hidden" }}>
-          <ViewerControls
-            representation={representation}
-            colorTheme={colorTheme}
-            onRepresentation={setRepresentation}
-            onColorTheme={setColorTheme}
-          />
+        <section aria-label="Molecular viewer and stress test" style={{ display: "grid", gridTemplateRows: "auto 1fr 300px", gap: 12, overflow: "hidden" }}>
+          <div style={{ display: "flex", gap: 12 }}>
+            <ViewerControls
+              representation={representation}
+              colorTheme={colorTheme}
+              onRepresentation={setRepresentation}
+              onColorTheme={setColorTheme}
+            />
+            <button
+              className="btn"
+              onClick={() => setScaleDollyOpen((o) => !o)}
+              aria-pressed={scaleDollyOpen}
+              aria-label="Toggle scale dolly — cinematic zoom from cell to atom"
+              style={{ whiteSpace: "nowrap" }}
+            >
+              {scaleDollyOpen ? "Close dolly" : "Scale dolly · cell → atom"}
+            </button>
+          </div>
           <div className="panel" style={{ position: "relative", overflow: "hidden", minHeight: 260 }}>
             <MolstarViewer
               pdbId={round.target_pdb}
-              representation={representation}
+              representation={effectiveRepresentation}
               colorTheme={colorTheme}
               hotspots={round.hotspots}
+              binderColor={state.color}
+              focusPocket
+              accessibleDescription={`3D view of ${round.target_id} (PDB ${round.target_pdb}) with ${round.hotspots.length} hotspots highlighted. Active player: ${state.name}.`}
               onResidueClick={setSelectedResidue}
             />
             <ResidueInfoCard
@@ -90,12 +114,13 @@ export function PlayerDetailPage() {
               hotspots={round.hotspots}
               onClear={() => setSelectedResidue(null)}
             />
+            {scaleDollyOpen && <ScaleDolly onStopChange={setDollyStop} />}
           </div>
           <StressTestPanel stress={activeCandidate?.stress_test ?? null} color={state.color} />
-        </div>
+        </section>
 
         {/* RIGHT — candidates + rationale */}
-        <div style={{ display: "grid", gridTemplateRows: "1fr auto", gap: 12, overflow: "hidden" }}>
+        <aside aria-label="Candidates and rationale" style={{ display: "grid", gridTemplateRows: "1fr auto", gap: 12, overflow: "hidden" }}>
           <CandidateList
             candidates={candidates}
             selectedId={activeCandidate?.id ?? null}
@@ -115,7 +140,7 @@ export function PlayerDetailPage() {
               </div>
             </div>
           )}
-        </div>
+        </aside>
       </div>
 
       <BroadcastFooter players={round.players} candidates={round.candidates} />

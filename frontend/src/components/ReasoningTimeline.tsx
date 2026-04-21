@@ -57,6 +57,10 @@ export function ReasoningTimeline({ entries, color }: Props) {
       <div
         ref={scrollRef}
         onScroll={onScroll}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-atomic="false"
         style={{ overflowY: "auto", flex: 1, padding: "8px 12px", fontSize: 12 }}
       >
         {entries.length === 0 && (

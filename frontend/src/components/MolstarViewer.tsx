@@ -9,20 +9,37 @@ interface Props {
   representation: Representation;
   colorTheme: ColorTheme;
   hotspots: HotspotAnnotation[];
+  binderPdb?: string | null;     // optional in-memory binder structure
+  binderColor?: string;           // accent hex for the binder
+  focusPocket?: boolean;          // camera pre-set to hotspot pocket
+  accessibleDescription?: string; // sr-only description
   onResidueClick?: (residue: number) => void;
 }
 
-// Custom Mol* wrapper — follows the research agent's guidance:
-// - createPluginUI + renderReact18
-// - caches plugin ref, disposes on unmount (StrictMode-safe)
-// - programmatic representation + theme switches via the builder API
-// - hotspot highlight as a second representation with uniform color
-export function MolstarViewer({ pdbId, representation, colorTheme, hotspots, onResidueClick }: Props) {
+// Custom Mol* wrapper.
+//
+// Design: (a) build a single plugin once per pdbId; (b) keep it across re-renders;
+// (c) mutate reps and camera only — never rebuild the plugin for a prop change;
+// (d) expose an accessible description alongside the opaque canvas.
+export function MolstarViewer({
+  pdbId,
+  representation,
+  colorTheme,
+  hotspots,
+  binderPdb = null,
+  binderColor = "#5ccfe6",
+  focusPocket = true,
+  accessibleDescription,
+  onResidueClick,
+}: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const pluginRef = useRef<any>(null);
+  const structureRef = useRef<any>(null);
+  const hotspotSelRef = useRef<any>(null);
+  const binderRef = useRef<any>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
-  // Initialise once per pdbId.
+  // Initialise plugin + load target once per pdbId.
   useEffect(() => {
     let mounted = true;
     setStatus("loading");
@@ -35,7 +52,6 @@ export function MolstarViewer({ pdbId, representation, colorTheme, hotspots, onR
       if (!mounted || !hostRef.current) return;
 
       const spec = DefaultPluginUISpec();
-      // Hide Mol*'s own chrome; we drive everything programmatically.
       spec.layout = {
         initial: {
           isExpanded: false,
@@ -68,7 +84,8 @@ export function MolstarViewer({ pdbId, representation, colorTheme, hotspots, onR
           { state: { isGhost: true } }
         );
         const trajectory = await plugin.builders.structure.parseTrajectory(data, "mmcif");
-        await plugin.builders.structure.hierarchy.applyPreset(trajectory, "default");
+        const preset = await plugin.builders.structure.hierarchy.applyPreset(trajectory, "default");
+        structureRef.current = preset?.structure ?? null;
         setStatus("ready");
       } catch (e) {
         console.error("Mol* load failed", e);
@@ -82,8 +99,115 @@ export function MolstarViewer({ pdbId, representation, colorTheme, hotspots, onR
         pluginRef.current.dispose();
         pluginRef.current = null;
       }
+      structureRef.current = null;
+      hotspotSelRef.current = null;
+      binderRef.current = null;
     };
   }, [pdbId]);
+
+  // Hotspot overlay — render as ball-and-stick in amber on the target.
+  useEffect(() => {
+    if (status !== "ready") return;
+    const plugin = pluginRef.current;
+    const structure = structureRef.current;
+    if (!plugin || !structure || hotspots.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { MolScriptBuilder: MS } = await import("molstar/lib/mol-script/language/builder");
+        const { Color } = await import("molstar/lib/mol-util/color");
+
+        const expr = MS.struct.generator.atomGroups({
+          "residue-test": MS.core.set.has([
+            MS.set(...hotspots.map((h) => h.residue)),
+            MS.ammp("auth_seq_id"),
+          ]),
+        });
+
+        // Clear previous hotspot selection, if any.
+        if (hotspotSelRef.current && hotspotSelRef.current.cell) {
+          await plugin.build().delete(hotspotSelRef.current.cell).commit();
+        }
+
+        const sel = await plugin.builders.structure.tryCreateComponentFromExpression(
+          structure,
+          expr,
+          "hotspots"
+        );
+        if (cancelled || !sel) return;
+        hotspotSelRef.current = { cell: sel.cell ?? sel.ref ?? sel };
+
+        await plugin.builders.structure.representation.addRepresentation(sel, {
+          type: "ball-and-stick",
+          color: "uniform",
+          colorParams: { value: Color(0xffb547) },
+        });
+
+        if (focusPocket) {
+          const { StructureSelection } = await import("molstar/lib/mol-model/structure/query");
+          const { StructureQueryHelper } = await import(
+            "molstar/lib/mol-plugin-state/helpers/structure-query"
+          );
+          try {
+            const queried = StructureQueryHelper.createAndRun(structure.data ?? structure, expr);
+            const loci = StructureSelection.toLociWithSourceUnits(queried.selection);
+            plugin.managers.camera.focusLoci(loci, { extraRadius: 6, durationMs: 800 });
+          } catch (err) {
+            // Non-fatal — just skip the auto-focus.
+            console.debug("focusLoci skipped", err);
+          }
+        }
+      } catch (err) {
+        console.debug("hotspot overlay skipped", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hotspots, status, focusPocket]);
+
+  // Binder overlay — render from raw PDB string in the player's accent color.
+  useEffect(() => {
+    if (status !== "ready" || !binderPdb) return;
+    const plugin = pluginRef.current;
+    if (!plugin) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { Color } = await import("molstar/lib/mol-util/color");
+
+        // Clean up a previous binder before adding a new one.
+        if (binderRef.current && binderRef.current.cell) {
+          await plugin.build().delete(binderRef.current.cell).commit();
+        }
+
+        const raw = await plugin.builders.data.rawData({
+          data: binderPdb,
+          label: "binder-candidate",
+        });
+        const traj = await plugin.builders.structure.parseTrajectory(raw, "pdb");
+        const model = await plugin.builders.structure.createModel(traj);
+        const struct = await plugin.builders.structure.createStructure(model);
+        if (cancelled) return;
+        binderRef.current = { cell: struct.cell ?? struct.ref ?? struct };
+
+        await plugin.builders.structure.representation.addRepresentation(struct, {
+          type: "cartoon",
+          color: "uniform",
+          colorParams: { value: Color(parseInt(binderColor.replace("#", "0x"), 16)) },
+        });
+      } catch (err) {
+        console.debug("binder overlay skipped", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [binderPdb, binderColor, status]);
 
   // Click-to-select residue → callback.
   useEffect(() => {
@@ -104,8 +228,25 @@ export function MolstarViewer({ pdbId, representation, colorTheme, hotspots, onR
     return () => sub.unsubscribe();
   }, [onResidueClick, status]);
 
+  const autoDescription =
+    accessibleDescription ||
+    `3D rendering of protein ${pdbId.toUpperCase()}, shown as ${representation}, colored by ${colorTheme}. ${
+      hotspots.length
+    } hotspot residue${hotspots.length === 1 ? "" : "s"} highlighted${
+      binderPdb ? ", with a candidate binder superposed" : ""
+    }.`;
+
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    <div
+      style={{ position: "relative", width: "100%", height: "100%" }}
+      role="img"
+      aria-label={`Molecular structure: ${pdbId.toUpperCase()}`}
+      aria-describedby="mol-desc"
+    >
+      <div id="mol-desc" className="sr-only" aria-live="polite">
+        {autoDescription}
+      </div>
+
       <div ref={hostRef} style={{ position: "absolute", inset: 0 }} />
 
       {/* HUD overlay */}
@@ -131,6 +272,12 @@ export function MolstarViewer({ pdbId, representation, colorTheme, hotspots, onR
         <span className="t-mono" style={{ color: "var(--text-muted)" }}>{representation}</span>
         <span className="t-label" style={{ marginLeft: 10 }}>THEME</span>
         <span className="t-mono" style={{ color: "var(--text-muted)" }}>{colorTheme}</span>
+        {binderPdb && (
+          <>
+            <span className="t-label" style={{ marginLeft: 10, color: binderColor }}>BINDER</span>
+            <span className="t-mono" style={{ color: "var(--text-muted)" }}>candidate</span>
+          </>
+        )}
       </div>
 
       {/* Hotspot legend */}
@@ -150,7 +297,7 @@ export function MolstarViewer({ pdbId, representation, colorTheme, hotspots, onR
             zIndex: 2,
           }}
         >
-          <div className="t-label" style={{ marginBottom: 6 }}>HOTSPOTS</div>
+          <div className="t-label" style={{ marginBottom: 6 }}>HOTSPOTS · amber spheres in 3D</div>
           {hotspots.slice(0, 4).map((h) => (
             <div key={h.residue} style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
               <span className="t-mono" style={{ color: "var(--accent-amber)" }}>{h.label}</span>
