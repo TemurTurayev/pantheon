@@ -9,6 +9,9 @@ const PlayerDetailPage = lazy(() =>
 const BroadcastPage = lazy(() =>
   import("./pages/BroadcastPage").then((m) => ({ default: m.BroadcastPage }))
 );
+const FullscreenViewerPage = lazy(() =>
+  import("./pages/FullscreenViewerPage").then((m) => ({ default: m.FullscreenViewerPage }))
+);
 
 const FALLBACK = (
   <div role="status" aria-live="polite" style={{ padding: 24, color: "var(--text-muted)" }}>
@@ -23,6 +26,7 @@ export function App() {
         <Route path="/" element={<OverviewPage />} />
         <Route path="/p/:player" element={<PlayerDetailPage />} />
         <Route path="/broadcast" element={<BroadcastPage />} />
+        <Route path="/viewer/:pdbId" element={<FullscreenViewerPage />} />
       </Routes>
     </Suspense>
   );

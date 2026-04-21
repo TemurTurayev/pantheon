@@ -83,12 +83,15 @@ export function OverviewPage() {
           </ul>
         </section>
 
-        <section style={{ marginTop: 24, display: "flex", gap: 12, alignItems: "center" }}>
+        <section style={{ marginTop: 24, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <Link to="/broadcast" className="btn">
             Open broadcast view →
           </Link>
+          <Link to={`/viewer/${round.target_pdb}`} className="btn btn-primary">
+            ⛶  Fullscreen viewer + tools
+          </Link>
           <span className="t-meta">
-            full-screen 1920×1080 layout for streams
+            broadcast: 1920×1080 OBS layout · fullscreen: interactive Mol* + perturbations
           </span>
         </section>
       </main>

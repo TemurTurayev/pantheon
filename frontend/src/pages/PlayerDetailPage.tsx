@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { BroadcastFooter } from "../components/BroadcastFooter";
 import { CandidateList } from "../components/CandidateList";
 import { MolstarViewer, type ColorTheme, type Representation } from "../components/MolstarViewer";
@@ -97,6 +97,14 @@ export function PlayerDetailPage() {
             >
               {scaleDollyOpen ? "Close dolly" : "Scale dolly · cell → atom"}
             </button>
+            <Link
+              to={`/viewer/${round.target_pdb}`}
+              className="btn btn-primary"
+              aria-label="Open fullscreen viewer with tool palette and perturbation drawer"
+              style={{ whiteSpace: "nowrap" }}
+            >
+              ⛶  Fullscreen + tools
+            </Link>
           </div>
           <div className="panel" style={{ position: "relative", overflow: "hidden", minHeight: 260 }}>
             <MolstarViewer
