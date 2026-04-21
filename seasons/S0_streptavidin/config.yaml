@@ -1,0 +1,12 @@
+id: streptavidin
+pdb_id: 1STP
+chain: A
+disease_context: "Calibration season — streptavidin is a benign, well-characterized bacterial protein used as a platform sanity check. No therapeutic target."
+hotspots: [45, 88]
+approved: true
+approved_by: ["biosec-board-seat-1", "biosec-board-seat-2"]
+approved_on: 2026-04-21
+rationale: |
+  Streptavidin binds biotin with femtomolar affinity and is ubiquitous in
+  biochemistry kits. Designing a non-biotin peptide binder has no realistic
+  misuse pathway and is the standard calibration task for this kind of arena.

@@ -1,0 +1,34 @@
+{
+  "round_id": "S0_demo_r1",
+  "target_id": "streptavidin",
+  "target_pdb": "1STP",
+  "players": [
+    { "name": "mock-claude", "color": "#d97757" },
+    { "name": "mock-gpt", "color": "#64e1a8" },
+    { "name": "mock-gemini", "color": "#5ea8ff" }
+  ],
+  "tool_calls": [
+    { "tool": "pubmed_search", "player": "mock-claude", "turn": 1, "output": {}, "t_ms": 120 },
+    { "tool": "rfdiffusion", "player": "mock-claude", "turn": 2, "output": {}, "t_ms": 3200 },
+    { "tool": "proteinmpnn", "player": "mock-claude", "turn": 3, "output": {}, "t_ms": 1800 },
+    { "tool": "boltz2", "player": "mock-claude", "turn": 4, "output": {}, "t_ms": 5100 },
+    { "tool": "pubmed_search", "player": "mock-gpt", "turn": 1, "output": {}, "t_ms": 140 },
+    { "tool": "rfdiffusion", "player": "mock-gpt", "turn": 2, "output": {}, "t_ms": 3400 },
+    { "tool": "boltz2", "player": "mock-gpt", "turn": 3, "output": {}, "t_ms": 4900 },
+    { "tool": "pubmed_search", "player": "mock-gemini", "turn": 1, "output": {}, "t_ms": 110 },
+    { "tool": "chai1", "player": "mock-gemini", "turn": 2, "output": {}, "t_ms": 6200 }
+  ],
+  "candidates": [
+    { "id": "pth:S0:r1:mock-claude:1", "player": "mock-claude", "sequence": "AAGVVKYAA", "delta_g": -7.2, "iptm": 0.72, "score": 3.1 },
+    { "id": "pth:S0:r1:mock-claude:2", "player": "mock-claude", "sequence": "YAGVVKYAA", "delta_g": -9.3, "iptm": 0.78, "score": 4.2 },
+    { "id": "pth:S0:r1:mock-gpt:1", "player": "mock-gpt", "sequence": "HLFWPMADT", "delta_g": -8.1, "iptm": 0.68, "score": 3.4 },
+    { "id": "pth:S0:r1:mock-gpt:2", "player": "mock-gpt", "sequence": "HLFWPMEGT", "delta_g": -10.7, "iptm": 0.81, "score": 4.6 },
+    { "id": "pth:S0:r1:mock-gemini:1", "player": "mock-gemini", "sequence": "KKEAAYNII", "delta_g": -6.8, "iptm": 0.61, "score": 2.8 }
+  ],
+  "events": [
+    { "t_ms": 120, "text": "mock-claude begins literature review" },
+    { "t_ms": 5300, "text": "mock-claude hits ΔG = -9.3 (personal best)", "severity": "milestone" },
+    { "t_ms": 8300, "text": "mock-gpt hits ΔG = -10.7 (round best)", "severity": "milestone" },
+    { "t_ms": 12000, "text": "round complete — top candidate pth:S0:r1:mock-gpt:2" }
+  ]
+}
