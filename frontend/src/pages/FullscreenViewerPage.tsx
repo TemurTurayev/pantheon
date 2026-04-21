@@ -1,9 +1,27 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PerturbationDrawer, type Perturbation } from "../components/PerturbationDrawer";
+import { PerturbationEffect } from "../components/PerturbationEffect";
 import { ShortcutSheet } from "../components/ShortcutSheet";
 import { ToastProvider, useToast } from "../components/ToastProvider";
 import { Toolbox, type ToolGroup } from "../components/Toolbox";
+import {
+  IconAtoms,
+  IconCartoon,
+  IconExit,
+  IconFlask,
+  IconHelp,
+  IconHome,
+  IconHotspot,
+  IconPalette,
+  IconPause,
+  IconPlay,
+  IconRuler,
+  IconSelect,
+  IconSnapshot,
+  IconSurface,
+  IconZoom,
+} from "../components/ToolIcons";
 import { useKeyboard } from "../hooks/useKeyboard";
 import { useRound } from "../data/useRound";
 import type { ColorTheme, Representation } from "../components/MolstarViewer";
@@ -12,7 +30,14 @@ const MolstarViewer = lazy(() =>
   import("../components/MolstarViewer").then((m) => ({ default: m.MolstarViewer }))
 );
 
-const COLOR_ORDER: ColorTheme[] = ["chain-id", "residue-name", "hydrophobicity", "plddt-confidence", "sequence-id", "element-symbol"];
+const COLOR_ORDER: ColorTheme[] = [
+  "chain-id",
+  "residue-name",
+  "hydrophobicity",
+  "plddt-confidence",
+  "sequence-id",
+  "element-symbol",
+];
 
 function FullscreenInner() {
   const { pdbId } = useParams<{ pdbId: string }>();
@@ -28,7 +53,7 @@ function FullscreenInner() {
   const [playing, setPlaying] = useState(false);
   const [currentPerturb, setCurrentPerturb] = useState<Perturbation | null>(null);
 
-  // Auto-hide logic — 2500ms idle per fullscreen-UX research.
+  // Auto-hide logic — 2500ms idle.
   const [chromeVisible, setChromeVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,29 +79,33 @@ function FullscreenInner() {
       setCurrentPerturb(p);
       setDrawerOpen(false);
       setPlaying(true);
-      show(`${p.name} · ${p.caption}`, "info", p.duration_s * 1000);
-      setTimeout(() => {
-        setPlaying(false);
-        show(`${p.name} complete`, "good", 2500);
-      }, p.duration_s * 1000);
+      show(`${p.name} — running ${p.duration_s}s`, "info", p.duration_s * 1000);
     },
     [show]
   );
 
+  const onPerturbComplete = useCallback(() => {
+    setPlaying(false);
+    if (currentPerturb) show(`${currentPerturb.name} complete`, "good", 2500);
+  }, [currentPerturb, show]);
+
   const cycleColor = useCallback(() => {
-    setColorThemeIdx((i) => (i + 1) % COLOR_ORDER.length);
-    show(`color: ${COLOR_ORDER[(colorThemeIdx + 1) % COLOR_ORDER.length]}`, "info", 1800);
-  }, [colorThemeIdx, show]);
+    setColorThemeIdx((i) => {
+      const next = (i + 1) % COLOR_ORDER.length;
+      show(`color: ${COLOR_ORDER[next]}`, "info", 1500);
+      return next;
+    });
+  }, [show]);
 
   const snapshot = useCallback(() => {
-    // Stub — real impl would call plugin.canvas3d.getImagePass per the Mol* spec.
-    show("snapshot copied to downloads (stub)", "good", 2500);
+    show("snapshot copied to downloads (stub)", "good", 2200);
   }, [show]);
 
   useKeyboard({
     Escape: () => {
       if (shortcutOpen) setShortcutOpen(false);
       else if (drawerOpen) setDrawerOpen(false);
+      else if (currentPerturb && playing) setPlaying(false);
       else navigate(-1);
     },
     "?": () => setShortcutOpen((o) => !o),
@@ -117,34 +146,34 @@ function FullscreenInner() {
       id: "view",
       label: "VIEW",
       tools: [
-        { id: "home",   label: "Home view",   icon: "⌂",  shortcut: "H", onClick: () => show("camera reset to home", "info", 1500) },
-        { id: "zoom",   label: "Zoom to focus", icon: "⊕", shortcut: "Z", onClick: () => show("zoomed to hotspot pocket", "info", 1500) },
+        { id: "home", label: "Home view", icon: <IconHome />, shortcut: "H", onClick: () => show("camera reset to home", "info", 1500) },
+        { id: "zoom", label: "Zoom to focus", icon: <IconZoom />, shortcut: "Z", onClick: () => show("zoomed to hotspot pocket", "info", 1500) },
       ],
     },
     {
       id: "style",
       label: "STYLE",
       tools: [
-        { id: "cartoon", label: "Cartoon",         icon: "〰", shortcut: "1", active: representation === "cartoon",         onClick: () => setRepresentation("cartoon") },
-        { id: "surface", label: "Surface",         icon: "◉", shortcut: "2", active: representation === "surface",         onClick: () => setRepresentation("surface") },
-        { id: "atoms",   label: "Ball-and-stick",  icon: "⚛", shortcut: "3", active: representation === "ball-and-stick",  onClick: () => setRepresentation("ball-and-stick") },
-        { id: "color",   label: "Cycle color theme", icon: "✻", shortcut: "C", onClick: cycleColor },
-        { id: "hot",     label: "Toggle hotspots", icon: "◈", shortcut: "T", active: showHotspots, onClick: () => setShowHotspots((v) => !v) },
+        { id: "cartoon", label: "Cartoon",        icon: <IconCartoon />, shortcut: "1", active: representation === "cartoon",        onClick: () => setRepresentation("cartoon") },
+        { id: "surface", label: "Surface",        icon: <IconSurface />, shortcut: "2", active: representation === "surface",        onClick: () => setRepresentation("surface") },
+        { id: "atoms",   label: "Ball-and-stick", icon: <IconAtoms />,   shortcut: "3", active: representation === "ball-and-stick", onClick: () => setRepresentation("ball-and-stick") },
+        { id: "color",   label: "Cycle color theme", icon: <IconPalette />, shortcut: "C", onClick: cycleColor },
+        { id: "hot",     label: "Toggle hotspots",   icon: <IconHotspot />, shortcut: "T", active: showHotspots, onClick: () => setShowHotspots((v) => !v) },
       ],
     },
     {
       id: "analyze",
       label: "ANALYZE",
       tools: [
-        { id: "ruler",  label: "Measure distance", icon: "⟷", shortcut: "M", onClick: () => show("measurement: drag between two atoms (stub)", "info", 2000) },
-        { id: "select", label: "Select residue",   icon: "▭", shortcut: "S", onClick: () => show("click a residue to open scanner", "info", 2000) },
+        { id: "ruler",  label: "Measure distance", icon: <IconRuler />,  shortcut: "M", onClick: () => show("drag between two atoms (stub)", "info", 1800) },
+        { id: "select", label: "Select residue",   icon: <IconSelect />, shortcut: "S", onClick: () => show("click a residue to open scanner", "info", 1800) },
       ],
     },
     {
       id: "capture",
       label: "CAPTURE",
       tools: [
-        { id: "snap", label: "Snapshot PNG", icon: "⌾", shortcut: "P", onClick: snapshot },
+        { id: "snap", label: "Snapshot PNG", icon: <IconSnapshot />, shortcut: "P", onClick: snapshot },
       ],
     },
     {
@@ -152,8 +181,8 @@ function FullscreenInner() {
       label: "SIMULATE",
       accent: true,
       tools: [
-        { id: "apply", label: "Apply substance", icon: "🧪", shortcut: "A", accent: true, onClick: () => setDrawerOpen(true) },
-        { id: "play",  label: playing ? "Pause" : "Play simulation", icon: playing ? "⏸" : "▶", shortcut: "Space", accent: true, onClick: () => { if (currentPerturb) setPlaying((p) => !p); else setDrawerOpen(true); } },
+        { id: "apply", label: "Apply substance", icon: <IconFlask />, shortcut: "A", accent: true, onClick: () => setDrawerOpen(true) },
+        { id: "play",  label: playing ? "Pause" : "Play simulation", icon: playing ? <IconPause /> : <IconPlay />, shortcut: "Space", accent: true, onClick: () => { if (currentPerturb) setPlaying((p) => !p); else setDrawerOpen(true); } },
       ],
     },
   ];
@@ -170,7 +199,7 @@ function FullscreenInner() {
       role="main"
       aria-label="Fullscreen molecular viewer"
     >
-      {/* Edge-to-edge viewer */}
+      {/* Edge-to-edge viewer with its own chrome suppressed */}
       <Suspense fallback={<div style={{ padding: 24, color: "var(--text-muted)" }}>loading viewer…</div>}>
         <MolstarViewer
           pdbId={tgt}
@@ -179,22 +208,31 @@ function FullscreenInner() {
           hotspots={showHotspots ? round.hotspots : []}
           binderColor={accent}
           focusPocket={false}
+          hideChrome
           accessibleDescription={`Fullscreen 3D view of ${tgt}. ${representation}, ${COLOR_ORDER[colorThemeIdx]}, hotspots ${showHotspots ? "on" : "off"}.`}
         />
       </Suspense>
 
-      {/* Top bar — chromeless title + exit */}
+      {/* Perturbation animation overlay */}
+      <PerturbationEffect
+        perturbation={currentPerturb}
+        playing={playing}
+        onComplete={onPerturbComplete}
+      />
+
+      {/* Compact top bar — bounded to the top 52px only */}
       <div
         style={{
           position: "absolute",
           top: 0,
           left: 0,
           right: 0,
-          padding: "14px 20px",
+          height: 52,
+          padding: "0 16px",
           display: "flex",
           alignItems: "center",
-          gap: 14,
-          background: "linear-gradient(to bottom, color-mix(in oklab, var(--bg-void) 78%, transparent), transparent)",
+          gap: 12,
+          background: "linear-gradient(to bottom, color-mix(in oklab, var(--bg-void) 82%, transparent) 30%, transparent 100%)",
           opacity: chromeVisible ? 1 : 0,
           transition: "opacity 280ms var(--ease-standard)",
           pointerEvents: chromeVisible ? "auto" : "none",
@@ -205,55 +243,110 @@ function FullscreenInner() {
           onClick={() => navigate(-1)}
           aria-label="Exit fullscreen"
           className="btn"
-          style={{ padding: "6px 12px", fontSize: 12 }}
+          style={{ padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}
         >
-          ← Exit · F / Esc
+          <IconExit /> <span>Exit · F</span>
         </button>
-        <div style={{ flex: 1 }}>
-          <div className="t-label" style={{ marginBottom: 2 }}>FULLSCREEN VIEWER</div>
-          <div style={{ fontSize: 15, color: "var(--text-primary)" }}>
+
+        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2, minWidth: 0 }}>
+          <span className="t-label" style={{ fontSize: 9 }}>FULLSCREEN VIEWER</span>
+          <span style={{ fontSize: 13, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             target · <strong>{round.target_id}</strong> · PDB {tgt}
-          </div>
+          </span>
         </div>
-        <button
-          className="btn"
-          onClick={() => setShortcutOpen(true)}
-          aria-label="Open keyboard shortcuts"
-          style={{ fontSize: 12 }}
-        >
-          Shortcuts · ?
-        </button>
+
+        {/* Live meta on the right */}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <span
+            className="t-mono"
+            style={{
+              fontSize: 11,
+              padding: "3px 8px",
+              background: "var(--bg-panel)",
+              border: "1px solid var(--bg-line)",
+              borderRadius: 999,
+              color: "var(--text-muted)",
+            }}
+            aria-label="Current representation"
+          >
+            {representation}
+          </span>
+          <span
+            className="t-mono"
+            style={{
+              fontSize: 11,
+              padding: "3px 8px",
+              background: "var(--bg-panel)",
+              border: "1px solid var(--bg-line)",
+              borderRadius: 999,
+              color: "var(--text-muted)",
+            }}
+            aria-label="Current color theme"
+          >
+            {COLOR_ORDER[colorThemeIdx]}
+          </span>
+          <button
+            className="btn"
+            onClick={() => setShortcutOpen(true)}
+            aria-label="Open keyboard shortcuts"
+            style={{ padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}
+          >
+            <IconHelp /> <span>?</span>
+          </button>
+        </div>
       </div>
 
-      {/* Floating tool palette */}
+      {/* Floating tool palette — bounded between top bar (64) and bottom hint (64) */}
       <Toolbox groups={groups} visible={chromeVisible} />
 
-      {/* Bottom playback bar — shown when a perturbation is running */}
+      {/* Bottom playback bar appears only during or right after a perturbation */}
       {currentPerturb && (
         <div
           style={{
             position: "absolute",
-            left: 16,
-            right: 16,
+            left: "50%",
+            transform: "translateX(-50%)",
             bottom: 16,
-            padding: "10px 14px",
+            padding: "10px 16px",
             background: "color-mix(in oklab, var(--bg-panel) 92%, transparent)",
-            border: `1px solid ${accent}`,
-            borderRadius: 8,
+            border: `1px solid ${playing ? accent : "var(--bg-line)"}`,
+            borderRadius: 999,
             display: "flex",
-            gap: 16,
+            gap: 12,
             alignItems: "center",
-            zIndex: 20,
+            zIndex: 31,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            maxWidth: "min(720px, calc(100% - 32px))",
           }}
         >
-          <span style={{ fontSize: 20 }} aria-hidden="true">{currentPerturb.icon}</span>
-          <div style={{ flex: 1 }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => setPlaying((p) => !p)}
+            aria-label={playing ? "Pause" : "Play"}
+            style={{ padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            {playing ? <IconPause /> : <IconPlay />}
+          </button>
+          <span style={{ fontSize: 16 }} aria-hidden="true">{currentPerturb.icon}</span>
+          <div style={{ minWidth: 0 }}>
             <div className="t-label" style={{ color: accent }}>
-              PERTURBATION · {playing ? "PLAYING" : "PAUSED"}
+              {playing ? "PLAYING" : "PAUSED"} · {currentPerturb.compute.toUpperCase()}
             </div>
-            <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{currentPerturb.caption}</div>
+            <div style={{ fontSize: 12, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {currentPerturb.name} — {currentPerturb.caption}
+            </div>
           </div>
-          <span className="t-meta">duration {currentPerturb.duration_s}s · {currentPerturb.compute}</span>
+          <button
+            className="btn"
+            onClick={() => {
+              setPlaying(false);
+              setCurrentPerturb(null);
+            }}
+            aria-label="Clear perturbation"
+            style={{ fontSize: 11 }}
+          >
+            Clear
+          </button>
         </div>
       )}
 

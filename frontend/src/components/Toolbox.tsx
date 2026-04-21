@@ -22,7 +22,9 @@ interface Props {
   visible: boolean;
 }
 
-// Floating tool-palette, left edge, auto-hides with the cursor.
+// Floating tool-palette. Bounded to the safe area between the top bar
+// (top: 64px) and the bottom (bottom: 64px). Scrolls internally if the
+// groups exceed the viewport height.
 export function Toolbox({ groups, visible }: Props) {
   return (
     <div
@@ -30,17 +32,23 @@ export function Toolbox({ groups, visible }: Props) {
       aria-label="Viewer tools"
       style={{
         position: "absolute",
-        left: 16,
-        top: "50%",
-        transform: `translate(${visible ? 0 : -24}px, -50%)`,
+        left: 12,
+        top: 64,
+        bottom: 64,
+        width: 56,
+        overflowY: "auto",
+        overflowX: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        paddingRight: 2,
+        transform: `translateX(${visible ? 0 : -24}px)`,
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? "auto" : "none",
         transition:
           "transform 280ms var(--ease-standard), opacity 280ms var(--ease-standard)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
         zIndex: 20,
+        scrollbarWidth: "none",
       }}
     >
       {groups.map((g) => (
@@ -48,18 +56,20 @@ export function Toolbox({ groups, visible }: Props) {
           key={g.id}
           className="panel-raised"
           style={{
-            padding: 6,
+            padding: 5,
             display: "flex",
             flexDirection: "column",
-            gap: 4,
+            gap: 3,
             borderColor: g.accent ? "var(--accent-amber)" : "var(--bg-line)",
+            flexShrink: 0,
           }}
         >
           <span
             className="t-label"
             style={{
-              fontSize: 9,
-              padding: "2px 4px",
+              fontSize: 8,
+              padding: "2px 2px",
+              textAlign: "center",
               color: g.accent ? "var(--accent-amber)" : "var(--text-dim)",
             }}
           >
@@ -75,9 +85,9 @@ export function Toolbox({ groups, visible }: Props) {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                width: 40,
-                height: 40,
+                justifyContent: "center",
+                width: 36,
+                height: 36,
                 padding: 0,
                 borderRadius: 6,
                 background: t.active ? "var(--bg-line)" : "transparent",
@@ -89,9 +99,8 @@ export function Toolbox({ groups, visible }: Props) {
                   : "transparent",
                 color: t.accent ? "var(--accent-amber)" : "var(--text-primary)",
                 cursor: "pointer",
-                justifyContent: "center",
-                fontSize: 16,
-                transition: "background var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard)",
+                transition:
+                  "background var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard)",
               }}
               onMouseEnter={(e) => {
                 if (!t.active) (e.currentTarget as HTMLElement).style.background = "var(--bg-raised)";

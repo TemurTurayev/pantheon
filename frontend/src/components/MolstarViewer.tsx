@@ -12,6 +12,7 @@ interface Props {
   binderPdb?: string | null;     // optional in-memory binder structure
   binderColor?: string;           // accent hex for the binder
   focusPocket?: boolean;          // camera pre-set to hotspot pocket
+  hideChrome?: boolean;           // suppress built-in HUD + hotspot legend
   accessibleDescription?: string; // sr-only description
   onResidueClick?: (residue: number) => void;
 }
@@ -29,6 +30,7 @@ export function MolstarViewer({
   binderPdb = null,
   binderColor = "#5ccfe6",
   focusPocket = true,
+  hideChrome = false,
   accessibleDescription,
   onResidueClick,
 }: Props) {
@@ -249,8 +251,8 @@ export function MolstarViewer({
 
       <div ref={hostRef} style={{ position: "absolute", inset: 0 }} />
 
-      {/* HUD overlay */}
-      <div
+      {/* HUD overlay — suppressed in fullscreen (host owns its own chrome) */}
+      {!hideChrome && <div
         style={{
           position: "absolute",
           top: 12,
@@ -278,10 +280,10 @@ export function MolstarViewer({
             <span className="t-mono" style={{ color: "var(--text-muted)" }}>candidate</span>
           </>
         )}
-      </div>
+      </div>}
 
-      {/* Hotspot legend */}
-      {hotspots.length > 0 && (
+      {/* Hotspot legend — also suppressed in fullscreen */}
+      {!hideChrome && hotspots.length > 0 && (
         <div
           style={{
             position: "absolute",
