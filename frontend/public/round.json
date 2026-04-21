@@ -2,33 +2,1019 @@
   "round_id": "S0_demo_r1",
   "target_id": "streptavidin",
   "target_pdb": "1STP",
+  "target_stakes": "Calibration round \u2014 design a peptide that fits the biotin pocket of streptavidin. Easy target, known answer, used to verify the arena is working end-to-end.",
   "players": [
-    { "name": "mock-claude", "color": "#d97757" },
-    { "name": "mock-gpt", "color": "#64e1a8" },
-    { "name": "mock-gemini", "color": "#5ea8ff" }
+    {
+      "name": "claude-opus-4-7",
+      "color": "#d97757",
+      "status": "done",
+      "current_action": "Final submission locked in \u2014 awaiting scoring.",
+      "step": 16,
+      "step_total": 16,
+      "elapsed_ms": 63000,
+      "score_history": [
+        1.787,
+        1.945,
+        1.8,
+        2.288,
+        2.795,
+        3.053,
+        3.373,
+        3.282,
+        3.668,
+        3.684,
+        3.556,
+        4.2
+      ]
+    },
+    {
+      "name": "gpt-5-4",
+      "color": "#64e1a8",
+      "status": "tool",
+      "current_tool": "openmm_md",
+      "current_action": "Running MD stress-test at T=400K on top candidate.",
+      "step": 13,
+      "step_total": 14,
+      "elapsed_ms": 78400,
+      "score_history": [
+        1.472,
+        1.759,
+        2.04,
+        1.994,
+        1.972,
+        1.902,
+        1.762,
+        1.953,
+        2.478,
+        2.373,
+        2.602,
+        4.6
+      ]
+    },
+    {
+      "name": "gemini-3-pro",
+      "color": "#5ea8ff",
+      "status": "thinking",
+      "current_action": "Re-scoring two late candidates against ipTM threshold.",
+      "step": 14,
+      "step_total": 15,
+      "elapsed_ms": 59400,
+      "score_history": [
+        1.201,
+        1.113,
+        1.369,
+        1.407,
+        1.647,
+        1.948,
+        2.135,
+        2.233,
+        2.258,
+        2.761,
+        2.929,
+        3.15
+      ]
+    }
   ],
+  "reasoning_by_player": {
+    "claude-opus-4-7": [
+      {
+        "t_ms": 90,
+        "kind": "thought",
+        "summary": "Start: biotin-binding pocket is the obvious target site.",
+        "body": "Streptavidin forms the canonical femtomolar complex with biotin. For a peptide binder I\u2019ll aim for the same pocket but avoid the exact biotin carboxylate pose \u2014 that\u2019s patented territory."
+      },
+      {
+        "t_ms": 1800,
+        "kind": "tool_call",
+        "summary": "pubmed_search  query='streptavidin peptide binder'",
+        "tool": "pubmed_search"
+      },
+      {
+        "t_ms": 2400,
+        "kind": "tool_result",
+        "summary": "5 hits; 2 recent (2025) on mini-binders.",
+        "body": "[\n  {pmid: PMID6B67...., title: 'De novo mini-binders for streptavidin', year: 2025},\n  ...\n]"
+      },
+      {
+        "t_ms": 3600,
+        "kind": "thought",
+        "summary": "Planning hotspot-centred RFdiffusion run around Trp45 + Asn88."
+      },
+      {
+        "t_ms": 3900,
+        "kind": "tool_call",
+        "summary": "rfdiffusion  hotspots=[A45, A88]  length=30-50  n=8",
+        "tool": "rfdiffusion"
+      },
+      {
+        "t_ms": 16400,
+        "kind": "tool_result",
+        "summary": "8 backbones returned. Picking top-3 by compactness."
+      },
+      {
+        "t_ms": 17900,
+        "kind": "tool_call",
+        "summary": "proteinmpnn  num_sequences=6 per backbone",
+        "tool": "proteinmpnn"
+      },
+      {
+        "t_ms": 22100,
+        "kind": "tool_result",
+        "summary": "18 candidate sequences."
+      },
+      {
+        "t_ms": 22500,
+        "kind": "thought",
+        "summary": "Scoring every candidate with Boltz-2, then narrowing to top-3."
+      },
+      {
+        "t_ms": 23800,
+        "kind": "tool_call",
+        "summary": "boltz2  target=1STP  candidate=YAGVVKYTAA\u2026",
+        "tool": "boltz2"
+      },
+      {
+        "t_ms": 41200,
+        "kind": "tool_result",
+        "summary": "\u0394G = -9.3 kcal/mol, ipTM 0.78 \u2014 new personal best."
+      },
+      {
+        "t_ms": 45100,
+        "kind": "thought",
+        "summary": "Refining around the best hit: swap Val3\u2192Leu for tighter hydrophobic pack."
+      },
+      {
+        "t_ms": 45900,
+        "kind": "tool_call",
+        "summary": "boltz2  refined candidate",
+        "tool": "boltz2"
+      },
+      {
+        "t_ms": 62400,
+        "kind": "tool_result",
+        "summary": "\u0394G = -10.1 kcal/mol \u2014 refinement worked."
+      },
+      {
+        "t_ms": 62800,
+        "kind": "event",
+        "summary": "Submitting top-3 candidates."
+      }
+    ],
+    "gpt-5-4": [
+      {
+        "t_ms": 110,
+        "kind": "thought",
+        "summary": "Go hydrophobic-clamp first; sequence search \u2192 graft onto an alpha-hairpin."
+      },
+      {
+        "t_ms": 1900,
+        "kind": "tool_call",
+        "summary": "pubmed_search  query='biotin binding pocket geometry'",
+        "tool": "pubmed_search"
+      },
+      {
+        "t_ms": 2500,
+        "kind": "tool_result",
+        "summary": "4 hits; one cites a 2024 structural alignment dataset."
+      },
+      {
+        "t_ms": 3700,
+        "kind": "tool_call",
+        "summary": "rfdiffusion  length=25-40  n=12",
+        "tool": "rfdiffusion"
+      },
+      {
+        "t_ms": 15900,
+        "kind": "tool_result",
+        "summary": "12 backbones; filtered to 5 by hairpin detection."
+      },
+      {
+        "t_ms": 16400,
+        "kind": "tool_call",
+        "summary": "proteinmpnn  n=8 per backbone  T=0.2",
+        "tool": "proteinmpnn"
+      },
+      {
+        "t_ms": 20800,
+        "kind": "tool_result",
+        "summary": "40 sequences."
+      },
+      {
+        "t_ms": 21200,
+        "kind": "tool_call",
+        "summary": "boltz2  screening 10 best",
+        "tool": "boltz2"
+      },
+      {
+        "t_ms": 46300,
+        "kind": "tool_result",
+        "summary": "Best \u0394G = -10.7 kcal/mol, ipTM 0.81 \u2014 round leader."
+      },
+      {
+        "t_ms": 46800,
+        "kind": "thought",
+        "summary": "Holding position, running MD stress-test on top candidate."
+      },
+      {
+        "t_ms": 47200,
+        "kind": "tool_call",
+        "summary": "openmm_md  T=400K  5ns",
+        "tool": "openmm_md"
+      },
+      {
+        "t_ms": 78400,
+        "kind": "tool_result",
+        "summary": "RMSD stays < 2.1\u00c5, Q(t) = 0.82 \u2014 stable at 400K. PASS."
+      },
+      {
+        "t_ms": 78900,
+        "kind": "event",
+        "summary": "Submitting top candidate HLFWPMEGT\u2026"
+      }
+    ],
+    "gemini-3-pro": [
+      {
+        "t_ms": 100,
+        "kind": "thought",
+        "summary": "Trying a symmetric-helix motif; should present two anchor residues toward the pocket."
+      },
+      {
+        "t_ms": 1700,
+        "kind": "tool_call",
+        "summary": "pubmed_search  query='streptavidin symmetric peptide'",
+        "tool": "pubmed_search"
+      },
+      {
+        "t_ms": 2300,
+        "kind": "tool_result",
+        "summary": "3 hits, one on cyclic-peptide symmetry."
+      },
+      {
+        "t_ms": 3200,
+        "kind": "tool_call",
+        "summary": "rfdiffusion  symmetry=C2  length=30  n=4",
+        "tool": "rfdiffusion"
+      },
+      {
+        "t_ms": 11800,
+        "kind": "tool_result",
+        "summary": "4 symmetric backbones."
+      },
+      {
+        "t_ms": 12300,
+        "kind": "tool_call",
+        "summary": "chai1  scoring all 4",
+        "tool": "chai1"
+      },
+      {
+        "t_ms": 23700,
+        "kind": "tool_result",
+        "summary": "Best \u0394G \u2248 -6.8 kcal/mol \u2014 weaker than leaders."
+      },
+      {
+        "t_ms": 24000,
+        "kind": "thought",
+        "summary": "Symmetry is forcing too much loop \u2014 giving up on C2, trying single-helix variant."
+      },
+      {
+        "t_ms": 24500,
+        "kind": "tool_call",
+        "summary": "rfdiffusion  length=35  n=6",
+        "tool": "rfdiffusion"
+      },
+      {
+        "t_ms": 33100,
+        "kind": "tool_result",
+        "summary": "6 new backbones, better shape complementarity."
+      },
+      {
+        "t_ms": 33600,
+        "kind": "tool_call",
+        "summary": "proteinmpnn  n=4 each",
+        "tool": "proteinmpnn"
+      },
+      {
+        "t_ms": 37200,
+        "kind": "tool_result",
+        "summary": "24 sequences."
+      },
+      {
+        "t_ms": 37800,
+        "kind": "tool_call",
+        "summary": "boltz2  screening",
+        "tool": "boltz2"
+      },
+      {
+        "t_ms": 58900,
+        "kind": "tool_result",
+        "summary": "Best \u0394G = -8.9 kcal/mol \u2014 catching up, still behind GPT."
+      },
+      {
+        "t_ms": 59400,
+        "kind": "event",
+        "summary": "Submitting best 2 candidates."
+      }
+    ]
+  },
   "tool_calls": [
-    { "tool": "pubmed_search", "player": "mock-claude", "turn": 1, "output": {}, "t_ms": 120 },
-    { "tool": "rfdiffusion", "player": "mock-claude", "turn": 2, "output": {}, "t_ms": 3200 },
-    { "tool": "proteinmpnn", "player": "mock-claude", "turn": 3, "output": {}, "t_ms": 1800 },
-    { "tool": "boltz2", "player": "mock-claude", "turn": 4, "output": {}, "t_ms": 5100 },
-    { "tool": "pubmed_search", "player": "mock-gpt", "turn": 1, "output": {}, "t_ms": 140 },
-    { "tool": "rfdiffusion", "player": "mock-gpt", "turn": 2, "output": {}, "t_ms": 3400 },
-    { "tool": "boltz2", "player": "mock-gpt", "turn": 3, "output": {}, "t_ms": 4900 },
-    { "tool": "pubmed_search", "player": "mock-gemini", "turn": 1, "output": {}, "t_ms": 110 },
-    { "tool": "chai1", "player": "mock-gemini", "turn": 2, "output": {}, "t_ms": 6200 }
+    {
+      "tool": "pubmed_search",
+      "player": "claude-opus-4-7",
+      "turn": 0,
+      "output": {},
+      "t_ms": 1800,
+      "status": "ok"
+    },
+    {
+      "tool": "rfdiffusion",
+      "player": "claude-opus-4-7",
+      "turn": 0,
+      "output": {},
+      "t_ms": 3900,
+      "status": "ok"
+    },
+    {
+      "tool": "proteinmpnn",
+      "player": "claude-opus-4-7",
+      "turn": 0,
+      "output": {},
+      "t_ms": 17900,
+      "status": "ok"
+    },
+    {
+      "tool": "boltz2",
+      "player": "claude-opus-4-7",
+      "turn": 0,
+      "output": {},
+      "t_ms": 23800,
+      "status": "ok"
+    },
+    {
+      "tool": "boltz2",
+      "player": "claude-opus-4-7",
+      "turn": 0,
+      "output": {},
+      "t_ms": 45900,
+      "status": "ok"
+    },
+    {
+      "tool": "pubmed_search",
+      "player": "gpt-5-4",
+      "turn": 0,
+      "output": {},
+      "t_ms": 1900,
+      "status": "ok"
+    },
+    {
+      "tool": "rfdiffusion",
+      "player": "gpt-5-4",
+      "turn": 0,
+      "output": {},
+      "t_ms": 3700,
+      "status": "ok"
+    },
+    {
+      "tool": "proteinmpnn",
+      "player": "gpt-5-4",
+      "turn": 0,
+      "output": {},
+      "t_ms": 16400,
+      "status": "ok"
+    },
+    {
+      "tool": "boltz2",
+      "player": "gpt-5-4",
+      "turn": 0,
+      "output": {},
+      "t_ms": 21200,
+      "status": "ok"
+    },
+    {
+      "tool": "openmm_md",
+      "player": "gpt-5-4",
+      "turn": 0,
+      "output": {},
+      "t_ms": 47200,
+      "status": "ok"
+    },
+    {
+      "tool": "pubmed_search",
+      "player": "gemini-3-pro",
+      "turn": 0,
+      "output": {},
+      "t_ms": 1700,
+      "status": "ok"
+    },
+    {
+      "tool": "rfdiffusion",
+      "player": "gemini-3-pro",
+      "turn": 0,
+      "output": {},
+      "t_ms": 3200,
+      "status": "ok"
+    },
+    {
+      "tool": "chai1",
+      "player": "gemini-3-pro",
+      "turn": 0,
+      "output": {},
+      "t_ms": 12300,
+      "status": "ok"
+    },
+    {
+      "tool": "rfdiffusion",
+      "player": "gemini-3-pro",
+      "turn": 0,
+      "output": {},
+      "t_ms": 24500,
+      "status": "ok"
+    },
+    {
+      "tool": "proteinmpnn",
+      "player": "gemini-3-pro",
+      "turn": 0,
+      "output": {},
+      "t_ms": 33600,
+      "status": "ok"
+    },
+    {
+      "tool": "boltz2",
+      "player": "gemini-3-pro",
+      "turn": 0,
+      "output": {},
+      "t_ms": 37800,
+      "status": "ok"
+    }
   ],
   "candidates": [
-    { "id": "pth:S0:r1:mock-claude:1", "player": "mock-claude", "sequence": "AAGVVKYAA", "delta_g": -7.2, "iptm": 0.72, "score": 3.1 },
-    { "id": "pth:S0:r1:mock-claude:2", "player": "mock-claude", "sequence": "YAGVVKYAA", "delta_g": -9.3, "iptm": 0.78, "score": 4.2 },
-    { "id": "pth:S0:r1:mock-gpt:1", "player": "mock-gpt", "sequence": "HLFWPMADT", "delta_g": -8.1, "iptm": 0.68, "score": 3.4 },
-    { "id": "pth:S0:r1:mock-gpt:2", "player": "mock-gpt", "sequence": "HLFWPMEGT", "delta_g": -10.7, "iptm": 0.81, "score": 4.6 },
-    { "id": "pth:S0:r1:mock-gemini:1", "player": "mock-gemini", "sequence": "KKEAAYNII", "delta_g": -6.8, "iptm": 0.61, "score": 2.8 }
+    {
+      "id": "pth:S0:r1:claude-opus-4-7:1",
+      "player": "claude-opus-4-7",
+      "sequence": "AAGVVKYAAGTPWDNSI",
+      "delta_g": -7.2,
+      "iptm": 0.72,
+      "score": 3.1,
+      "rationale": "Hotspot-centred design around Trp45 + Asn88. Short loop + helix. Good starting point but pocket fit is shallow.",
+      "hotspot_residues": [
+        45,
+        88
+      ]
+    },
+    {
+      "id": "pth:S0:r1:claude-opus-4-7:2",
+      "player": "claude-opus-4-7",
+      "sequence": "YAGVVKYTAAGTPWDNSI",
+      "delta_g": -9.3,
+      "iptm": 0.78,
+      "score": 4.2,
+      "rationale": "Y-substitution deepens hydrophobic contact with the biotin pocket. ipTM jumps to 0.78 and \u0394G improves by ~2 kcal/mol.",
+      "hotspot_residues": [
+        45,
+        88
+      ]
+    },
+    {
+      "id": "pth:S0:r1:claude-opus-4-7:3",
+      "player": "claude-opus-4-7",
+      "sequence": "YAGLLKYTAAGTPWDNSI",
+      "delta_g": -10.1,
+      "iptm": 0.81,
+      "score": 4.55,
+      "rationale": "V3\u2192L swap tightens the hydrophobic pack one more turn. Final candidate \u2014 the one being submitted.",
+      "hotspot_residues": [
+        45,
+        88
+      ]
+    },
+    {
+      "id": "pth:S0:r1:gpt-5-4:1",
+      "player": "gpt-5-4",
+      "sequence": "HLFWPMADTKRSVVP",
+      "delta_g": -8.1,
+      "iptm": 0.68,
+      "score": 3.4,
+      "rationale": "Alpha-hairpin with a Trp-Phe clamp at the pocket rim. Good fit, somewhat flexible terminus.",
+      "hotspot_residues": [
+        45
+      ]
+    },
+    {
+      "id": "pth:S0:r1:gpt-5-4:2",
+      "player": "gpt-5-4",
+      "sequence": "HLFWPMEGTKRSVVP",
+      "delta_g": -10.7,
+      "iptm": 0.81,
+      "score": 4.6,
+      "rationale": "E\u2192E/G substitution stabilises the hairpin turn. \u0394G = -10.7, ipTM = 0.81 \u2014 round-best at submission time.",
+      "hotspot_residues": [
+        45,
+        88
+      ],
+      "stress_test": {
+        "condition": "T=400K \u00b7 5 ns \u00b7 explicit solvent",
+        "verdict": "pass",
+        "frames": [
+          {
+            "t_ns": 0.0,
+            "rmsd": 0.352,
+            "rg": 11.806,
+            "q_native": 0.982,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 0.1,
+            "rmsd": 0.388,
+            "rg": 11.822,
+            "q_native": 0.982,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 0.2,
+            "rmsd": 0.408,
+            "rg": 11.803,
+            "q_native": 0.979,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 0.3,
+            "rmsd": 0.361,
+            "rg": 11.797,
+            "q_native": 0.98,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 0.4,
+            "rmsd": 0.328,
+            "rg": 11.789,
+            "q_native": 0.981,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 0.5,
+            "rmsd": 0.358,
+            "rg": 11.761,
+            "q_native": 0.98,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 0.6,
+            "rmsd": 0.422,
+            "rg": 11.742,
+            "q_native": 0.974,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 0.7,
+            "rmsd": 0.44,
+            "rg": 11.766,
+            "q_native": 0.971,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 0.8,
+            "rmsd": 0.488,
+            "rg": 11.769,
+            "q_native": 0.965,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 0.9,
+            "rmsd": 0.542,
+            "rg": 11.781,
+            "q_native": 0.966,
+            "h_bonds": 29
+          },
+          {
+            "t_ns": 1.0,
+            "rmsd": 0.59,
+            "rg": 11.771,
+            "q_native": 0.966,
+            "h_bonds": 29
+          },
+          {
+            "t_ns": 1.1,
+            "rmsd": 0.59,
+            "rg": 11.795,
+            "q_native": 0.959,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 1.2,
+            "rmsd": 0.64,
+            "rg": 11.799,
+            "q_native": 0.953,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 1.3,
+            "rmsd": 0.666,
+            "rg": 11.793,
+            "q_native": 0.948,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 1.4,
+            "rmsd": 0.686,
+            "rg": 11.829,
+            "q_native": 0.94,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 1.5,
+            "rmsd": 0.731,
+            "rg": 11.831,
+            "q_native": 0.941,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 1.6,
+            "rmsd": 0.707,
+            "rg": 11.863,
+            "q_native": 0.935,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 1.7,
+            "rmsd": 0.718,
+            "rg": 11.839,
+            "q_native": 0.928,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 1.8,
+            "rmsd": 0.704,
+            "rg": 11.842,
+            "q_native": 0.924,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 1.9,
+            "rmsd": 0.737,
+            "rg": 11.878,
+            "q_native": 0.925,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 2.0,
+            "rmsd": 0.772,
+            "rg": 11.91,
+            "q_native": 0.922,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 2.1,
+            "rmsd": 0.833,
+            "rg": 11.895,
+            "q_native": 0.915,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 2.2,
+            "rmsd": 0.804,
+            "rg": 11.906,
+            "q_native": 0.914,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 2.3,
+            "rmsd": 0.819,
+            "rg": 11.911,
+            "q_native": 0.909,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 2.4,
+            "rmsd": 0.825,
+            "rg": 11.89,
+            "q_native": 0.91,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 2.5,
+            "rmsd": 0.886,
+            "rg": 11.919,
+            "q_native": 0.911,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 2.6,
+            "rmsd": 0.857,
+            "rg": 11.936,
+            "q_native": 0.913,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 2.7,
+            "rmsd": 0.898,
+            "rg": 11.916,
+            "q_native": 0.913,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 2.8,
+            "rmsd": 0.895,
+            "rg": 11.909,
+            "q_native": 0.905,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 2.9,
+            "rmsd": 0.957,
+            "rg": 11.943,
+            "q_native": 0.904,
+            "h_bonds": 27
+          },
+          {
+            "t_ns": 3.0,
+            "rmsd": 0.958,
+            "rg": 11.961,
+            "q_native": 0.898,
+            "h_bonds": 28
+          },
+          {
+            "t_ns": 3.1,
+            "rmsd": 0.919,
+            "rg": 11.949,
+            "q_native": 0.895,
+            "h_bonds": 29
+          },
+          {
+            "t_ns": 3.2,
+            "rmsd": 0.902,
+            "rg": 11.927,
+            "q_native": 0.894,
+            "h_bonds": 29
+          },
+          {
+            "t_ns": 3.3,
+            "rmsd": 0.888,
+            "rg": 11.956,
+            "q_native": 0.892,
+            "h_bonds": 29
+          },
+          {
+            "t_ns": 3.4,
+            "rmsd": 0.943,
+            "rg": 11.957,
+            "q_native": 0.886,
+            "h_bonds": 29
+          },
+          {
+            "t_ns": 3.5,
+            "rmsd": 0.939,
+            "rg": 11.927,
+            "q_native": 0.883,
+            "h_bonds": 29
+          },
+          {
+            "t_ns": 3.6,
+            "rmsd": 0.94,
+            "rg": 11.945,
+            "q_native": 0.88,
+            "h_bonds": 29
+          },
+          {
+            "t_ns": 3.7,
+            "rmsd": 0.966,
+            "rg": 11.926,
+            "q_native": 0.876,
+            "h_bonds": 30
+          },
+          {
+            "t_ns": 3.8,
+            "rmsd": 0.957,
+            "rg": 11.908,
+            "q_native": 0.868,
+            "h_bonds": 31
+          },
+          {
+            "t_ns": 3.9,
+            "rmsd": 0.962,
+            "rg": 11.924,
+            "q_native": 0.864,
+            "h_bonds": 31
+          },
+          {
+            "t_ns": 4.0,
+            "rmsd": 0.991,
+            "rg": 11.902,
+            "q_native": 0.862,
+            "h_bonds": 31
+          },
+          {
+            "t_ns": 4.1,
+            "rmsd": 0.949,
+            "rg": 11.881,
+            "q_native": 0.855,
+            "h_bonds": 32
+          },
+          {
+            "t_ns": 4.2,
+            "rmsd": 0.939,
+            "rg": 11.876,
+            "q_native": 0.85,
+            "h_bonds": 32
+          },
+          {
+            "t_ns": 4.3,
+            "rmsd": 0.925,
+            "rg": 11.894,
+            "q_native": 0.848,
+            "h_bonds": 32
+          },
+          {
+            "t_ns": 4.4,
+            "rmsd": 0.942,
+            "rg": 11.899,
+            "q_native": 0.843,
+            "h_bonds": 31
+          },
+          {
+            "t_ns": 4.5,
+            "rmsd": 0.956,
+            "rg": 11.912,
+            "q_native": 0.841,
+            "h_bonds": 31
+          },
+          {
+            "t_ns": 4.6,
+            "rmsd": 1.016,
+            "rg": 11.914,
+            "q_native": 0.843,
+            "h_bonds": 32
+          },
+          {
+            "t_ns": 4.7,
+            "rmsd": 1.037,
+            "rg": 11.922,
+            "q_native": 0.836,
+            "h_bonds": 32
+          },
+          {
+            "t_ns": 4.8,
+            "rmsd": 1.031,
+            "rg": 11.953,
+            "q_native": 0.834,
+            "h_bonds": 31
+          },
+          {
+            "t_ns": 4.9,
+            "rmsd": 1.098,
+            "rg": 11.97,
+            "q_native": 0.826,
+            "h_bonds": 32
+          }
+        ],
+        "events": [
+          {
+            "t_ns": 0.0,
+            "text": "MD started at T=400K, solvent: TIP3P, 5 ns",
+            "severity": "info"
+          },
+          {
+            "t_ns": 1.2,
+            "text": "Helix \u03b11 temporarily flickers, recovers",
+            "severity": "info"
+          },
+          {
+            "t_ns": 2.4,
+            "text": "H-bond network stable at 26 \u00b1 2",
+            "severity": "good"
+          },
+          {
+            "t_ns": 3.8,
+            "text": "Peripheral loop exploring alternative conformation",
+            "severity": "info"
+          },
+          {
+            "t_ns": 4.9,
+            "text": "Q(t) > 0.80 held throughout \u2014 PASS",
+            "severity": "good"
+          }
+        ],
+        "rmsf_per_residue": [
+          0.407,
+          0.685,
+          0.795,
+          0.883,
+          1.019,
+          0.905,
+          1.059,
+          1.165,
+          1.162,
+          1.137,
+          1.427,
+          1.188,
+          1.373,
+          1.457,
+          1.254,
+          1.302,
+          1.324,
+          1.268,
+          1.298,
+          1.188,
+          1.025,
+          0.765,
+          0.803,
+          0.789,
+          0.634,
+          0.589,
+          0.429,
+          0.299,
+          0.102,
+          0.133,
+          -0.176,
+          -0.003,
+          -0.211,
+          -0.266,
+          -0.252,
+          -0.537,
+          -0.559,
+          -0.486,
+          -0.347,
+          -0.466
+        ]
+      }
+    },
+    {
+      "id": "pth:S0:r1:gemini-3-pro:1",
+      "player": "gemini-3-pro",
+      "sequence": "KKEAAYNIIDGTWPLC",
+      "delta_g": -6.8,
+      "iptm": 0.61,
+      "score": 2.8,
+      "rationale": "Symmetric-helix attempt (C2). Symmetry constraint gave weaker pocket fit than expected.",
+      "hotspot_residues": [
+        88
+      ]
+    },
+    {
+      "id": "pth:S0:r1:gemini-3-pro:2",
+      "player": "gemini-3-pro",
+      "sequence": "KKEAYNIIDGTWPLCVV",
+      "delta_g": -8.9,
+      "iptm": 0.73,
+      "score": 3.55,
+      "rationale": "Dropped symmetry, single-helix variant with better shape complementarity. Still behind the leaders but valid.",
+      "hotspot_residues": [
+        88
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "residue": 45,
+      "label": "Trp45",
+      "role": "hotspot",
+      "explainer": "A deep aromatic residue that sits at the mouth of the biotin pocket. Binders that put a hydrophobic ring here (W, F, Y) usually gain 1-2 kcal/mol of affinity."
+    },
+    {
+      "residue": 88,
+      "label": "Asn88",
+      "role": "hotspot",
+      "explainer": "Hydrogen-bond anchor on the back wall of the pocket. A binder that can donate a polar group to this residue tends to be much more selective."
+    },
+    {
+      "residue": 23,
+      "label": "Ser23",
+      "role": "binding",
+      "explainer": "Surface serine contributing to the rim of the pocket. Not a strong anchor on its own but helps orient the incoming peptide."
+    },
+    {
+      "residue": 79,
+      "label": "Thr79",
+      "role": "pocket",
+      "explainer": "Defines the pocket floor. Binders that clash here lose scores quickly; the AIs learn to avoid it within the first few rounds."
+    }
   ],
   "events": [
-    { "t_ms": 120, "text": "mock-claude begins literature review" },
-    { "t_ms": 5300, "text": "mock-claude hits ΔG = -9.3 (personal best)", "severity": "milestone" },
-    { "t_ms": 8300, "text": "mock-gpt hits ΔG = -10.7 (round best)", "severity": "milestone" },
-    { "t_ms": 12000, "text": "round complete — top candidate pth:S0:r1:mock-gpt:2" }
+    {
+      "t_ms": 5000,
+      "text": "All three players begin reasoning phase"
+    },
+    {
+      "t_ms": 41200,
+      "text": "claude-opus-4-7 hits \u0394G = -9.3 (personal best)",
+      "severity": "milestone"
+    },
+    {
+      "t_ms": 46300,
+      "text": "gpt-5-4 hits \u0394G = -10.7 (round best)",
+      "severity": "milestone"
+    },
+    {
+      "t_ms": 62400,
+      "text": "claude-opus-4-7 refines to \u0394G = -10.1",
+      "severity": "milestone"
+    },
+    {
+      "t_ms": 78400,
+      "text": "gpt-5-4 stress-test at 400K PASSED \u2014 Q(t) = 0.82",
+      "severity": "milestone"
+    },
+    {
+      "t_ms": 79000,
+      "text": "Round complete \u2014 top candidate: pth:S0:r1:gpt-5-4:2"
+    }
   ]
 }

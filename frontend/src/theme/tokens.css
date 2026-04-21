@@ -1,0 +1,154 @@
+/* PANTHEON design tokens — derived from the aesthetics research report.
+   Rules:
+   - Numbers tick. Layout freezes.
+   - One easing: cubic-bezier(0.2, 0, 0, 1), 150-250ms.
+   - No glassmorphism, no neon, max 2 accents on screen at once.
+*/
+
+:root {
+  /* Backgrounds */
+  --bg-void: #08090c;
+  --bg-panel: #12141a;
+  --bg-raised: #1a1d26;
+  --bg-line: #242833;
+
+  /* Text */
+  --text-primary: #e4e7ef;
+  --text-muted: #8b92a5;
+  --text-dim: #4a5065;
+
+  /* Accents — use at most two on one screen */
+  --accent-cyan: #5ccfe6;
+  --accent-amber: #ffb547;
+
+  /* Semantic */
+  --good: #4ade80;
+  --warn: #f87171;
+  --info: #7aa2f7;
+
+  /* Status pill colors (orthogonal to player identity) */
+  --status-thinking: #7aa2f7;
+  --status-tool: #ffb547;
+  --status-done: #4ade80;
+  --status-error: #f87171;
+
+  /* Typography */
+  --font-ui: "Inter", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-fast: 150ms;
+  --motion-slow: 250ms;
+
+  /* Spacing scale — 4px base */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Typography roles */
+.t-display {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.t-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.t-body {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.t-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.t-meta {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+/* Panel */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--bg-line);
+  border-radius: 8px;
+}
+
+.panel-raised {
+  background: var(--bg-raised);
+  border: 1px solid var(--bg-line);
+  border-radius: 8px;
+}
+
+/* Links */
+a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* Buttons */
+.btn {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--bg-line);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard),
+              background var(--motion-fast) var(--ease-standard);
+}
+.btn:hover {
+  border-color: var(--accent-cyan);
+  background: var(--bg-line);
+}
+.btn-primary {
+  background: var(--accent-cyan);
+  color: var(--bg-void);
+  border-color: var(--accent-cyan);
+}
+.btn-primary:hover { background: #7bd7e8; }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--bg-line);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
