@@ -987,6 +987,15 @@
       "explainer": "Defines the pocket floor. Binders that clash here lose scores quickly; the AIs learn to avoid it within the first few rounds."
     }
   ],
+  "stress_goal": {
+    "id": "thermostable-binder",
+    "description": "Binder must remain folded under heat shock at 70 \u00b0C for 5 seconds.",
+    "perturbationId": "heatshock",
+    "durationS": 5,
+    "temperature": 70,
+    "passCriterion": "Q(t) > 0.60 at end of run",
+    "passThreshold": 0.6
+  },
   "events": [
     {
       "t_ms": 5000,

@@ -68,6 +68,17 @@ export interface HotspotAnnotation {
   explainer: string;   // plain-language for non-experts
 }
 
+export interface StressGoal {
+  id: string;
+  description: string;
+  perturbationId: string;          // matches PerturbationPreset.id
+  durationS: number;
+  temperature?: number;
+  intensity?: number;
+  passCriterion: string;           // human-readable
+  passThreshold: number;           // 0..1, fraction-of-stability needed to pass
+}
+
 export interface RoundLog {
   round_id: string;
   target_id: string;
@@ -78,5 +89,6 @@ export interface RoundLog {
   tool_calls: ToolCallRecord[];
   candidates: CandidateRecord[];
   hotspots: HotspotAnnotation[];
+  stress_goal?: StressGoal | null;
   events: { t_ms: number; text: string; severity?: "info" | "milestone" }[];
 }

@@ -266,6 +266,16 @@ def build() -> dict:
         {"t_ms": 79_000, "text": "Round complete — top candidate: pth:S0:r1:gpt-5-4:2"},
     ]
 
+    stress_goal = {
+        "id": "thermostable-binder",
+        "description": "Binder must remain folded under heat shock at 70 °C for 5 seconds.",
+        "perturbationId": "heatshock",
+        "durationS": 5,
+        "temperature": 70,
+        "passCriterion": "Q(t) > 0.60 at end of run",
+        "passThreshold": 0.60,
+    }
+
     payload = {
         "round_id": "S0_demo_r1",
         "target_id": "streptavidin",
@@ -276,6 +286,7 @@ def build() -> dict:
         "tool_calls": tool_calls,
         "candidates": candidates,
         "hotspots": hotspots,
+        "stress_goal": stress_goal,
         "events": events,
     }
     return payload

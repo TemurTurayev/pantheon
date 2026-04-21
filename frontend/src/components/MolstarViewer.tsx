@@ -14,6 +14,8 @@ interface Props {
   focusPocket?: boolean;          // camera pre-set to hotspot pocket
   hideChrome?: boolean;           // suppress built-in HUD + hotspot legend
   hostFilter?: string;            // CSS filter applied to the canvas host (live tinting)
+  hostTransform?: string;         // CSS transform applied to the canvas host (wobble, scale)
+  hostOpacity?: number;           // canvas opacity (denaturation fade)
   highlightResidues?: number[];   // residues to pop with a ball-and-stick overlay
   highlightColor?: string;        // accent color for highlighted residues
   focusOnResidue?: number | null; // residue number to focus the camera on (changes → refocus)
@@ -37,6 +39,8 @@ export function MolstarViewer({
   focusPocket = true,
   hideChrome = false,
   hostFilter,
+  hostTransform,
+  hostOpacity,
   highlightResidues,
   highlightColor = "#5ccfe6",
   focusOnResidue = null,
@@ -302,22 +306,39 @@ export function MolstarViewer({
   }, [binderPdb, binderColor, status]);
 
   // Click-to-select residue → callback.
+  // Uses Mol*'s real StructureElement API instead of hand-walking the model
+  // hierarchy. Triggers on mouse-up so it survives drag-rotate gestures.
   useEffect(() => {
+    if (status !== "ready") return;
     const plugin = pluginRef.current;
     if (!plugin || !onResidueClick) return;
-    const sub = plugin.behaviors.interaction.click.subscribe((e: any) => {
-      try {
-        const loci = e?.current?.loci;
-        if (!loci) return;
-        const seqId = loci.elements?.[0]?.unit?.model?.atomicHierarchy?.residues?.auth_seq_id?.value?.(
-          loci.elements?.[0]?.indices?.[0] ?? 0
-        );
-        if (typeof seqId === "number") onResidueClick(seqId);
-      } catch {
-        // non-residue click
-      }
-    });
-    return () => sub.unsubscribe();
+
+    let sub: { unsubscribe: () => void } | null = null;
+
+    (async () => {
+      const { StructureElement, StructureProperties: SP } = await import(
+        "molstar/lib/mol-model/structure"
+      );
+      sub = plugin.behaviors.interaction.click.subscribe((e: any) => {
+        try {
+          const loci = e?.current?.loci;
+          if (!loci || !StructureElement.Loci.is(loci)) return;
+          let captured: number | null = null;
+          StructureElement.Loci.forEachLocation(loci, (l: any) => {
+            if (captured != null) return;
+            const r = SP.residue.auth_seq_id(l);
+            if (typeof r === "number") captured = r;
+          });
+          if (captured != null) onResidueClick(captured);
+        } catch (err) {
+          console.debug("residue click parse failed", err);
+        }
+      });
+    })();
+
+    return () => {
+      sub?.unsubscribe();
+    };
   }, [onResidueClick, status]);
 
   const autoDescription =
@@ -345,7 +366,12 @@ export function MolstarViewer({
           position: "absolute",
           inset: 0,
           filter: hostFilter,
-          transition: "filter 400ms var(--ease-standard)",
+          transform: hostTransform,
+          opacity: hostOpacity ?? 1,
+          transformOrigin: "center center",
+          willChange: "transform, filter, opacity",
+          transition:
+            "filter 280ms var(--ease-standard), opacity 280ms var(--ease-standard)",
         }}
       />
 

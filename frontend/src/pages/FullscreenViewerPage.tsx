@@ -3,9 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { PerturbationDrawer, type PerturbationLaunch } from "../components/PerturbationDrawer";
 import {
   PerturbationEffect,
-  hostFilterFor,
+  hostStyleFor,
   type ActivePerturbation,
 } from "../components/PerturbationEffect";
+import { MissionStressTest } from "../components/MissionStressTest";
 import { ResidueInfoCard } from "../components/ResidueInfoCard";
 import { ShortcutSheet } from "../components/ShortcutSheet";
 import { ToastProvider, useToast } from "../components/ToastProvider";
@@ -59,6 +60,7 @@ function FullscreenInner() {
   const [active, setActive] = useState<ActivePerturbation | null>(null);
   const [perturbProgress, setPerturbProgress] = useState(0);
   const [selectedResidue, setSelectedResidue] = useState<number | null>(null);
+  const [missionOpen, setMissionOpen] = useState(true);
 
   const [chromeVisible, setChromeVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,7 +167,7 @@ function FullscreenInner() {
 
   const tgt = (pdbId ?? round.target_pdb).toUpperCase();
   const accent = round.players[0]?.color ?? "var(--accent-cyan)";
-  const hostFilter = active && playing ? hostFilterFor(active, perturbProgress) : undefined;
+  const hostStyle = active && playing ? hostStyleFor(active, perturbProgress) : {};
   const highlightResidues = selectedResidue != null ? [selectedResidue] : undefined;
 
   const groups: ToolGroup[] = [
@@ -210,6 +212,7 @@ function FullscreenInner() {
       tools: [
         { id: "apply", label: "Apply substance", icon: <IconFlask />, shortcut: "A", accent: true, onClick: () => setDrawerOpen(true) },
         { id: "play",  label: playing ? "Pause" : "Play simulation", icon: playing ? <IconPause /> : <IconPlay />, shortcut: "Space", accent: true, onClick: () => { if (active) setPlaying((p) => !p); else setDrawerOpen(true); } },
+        { id: "mission", label: missionOpen ? "Hide mission test" : "Show mission test", icon: <IconHotspot />, shortcut: "U", accent: true, active: missionOpen, onClick: () => setMissionOpen((o) => !o) },
       ],
     },
   ];
@@ -235,7 +238,9 @@ function FullscreenInner() {
           binderColor={accent}
           focusPocket={false}
           hideChrome
-          hostFilter={hostFilter}
+          hostFilter={hostStyle.filter}
+          hostTransform={hostStyle.transform}
+          hostOpacity={hostStyle.opacity}
           highlightResidues={highlightResidues}
           highlightColor={accent}
           focusOnResidue={selectedResidue}
@@ -327,6 +332,17 @@ function FullscreenInner() {
             setPerturbProgress(0);
           }}
           onParamChange={updateActiveParam}
+        />
+      )}
+
+      {round.stress_goal && missionOpen && (
+        <MissionStressTest
+          goal={round.stress_goal}
+          active={active}
+          progress={perturbProgress}
+          playing={playing}
+          accent={accent}
+          onLaunch={launchPerturb}
         />
       )}
 
