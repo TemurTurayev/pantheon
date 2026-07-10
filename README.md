@@ -33,7 +33,7 @@ Existing AI-vs-AI benchmarks test narrow skills (chess, werewolf, code). PANTHEO
 
 ## Status
 
-**Phases 0–9 scaffolded.** All layers are runnable end-to-end with stubs where real external services are involved. 64 tests, all green. Swap points for GPU tools (Boltz-2, RFdiffusion, ProteinMPNN) and external services (Adaptyv, Zenodo, HuggingFace) are in place — see [`docs/FINAL_HANDOFF.md`](docs/FINAL_HANDOFF.md) for what's production-ready vs. what needs external credentials before it can be switched from stub to live.
+**Phases 0–9 scaffolded.** All layers are runnable end-to-end. 72 tests, all green. **The credential-free science is now real, not stubbed:** `tools.default_registry()` wires real RDKit descriptors (QED, logP, TPSA, MW, Lipinski, Ertl SA — via `pip install -e .[science]`) and live NCBI PubMed literature search (`httpx`, already a core dep), each with automatic fallback to a deterministic stub when its dependency is absent. Swap points for GPU tools (Boltz-2, RFdiffusion, ProteinMPNN) and external services (Adaptyv, Zenodo, HuggingFace) remain — see [`docs/FINAL_HANDOFF.md`](docs/FINAL_HANDOFF.md) for what's production-ready vs. what still needs external credentials.
 
 ## Start here
 

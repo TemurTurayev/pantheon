@@ -22,6 +22,29 @@ def _has_rdkit() -> bool:
         return False
 
 
+def _sa_score(mol) -> float:
+    """Ertl synthetic-accessibility score (1=easy … 10=hard).
+
+    Uses the ``sascorer`` contrib module + ``fpscores`` model bundled with the
+    rdkit wheel. Returns 0.0 if the contrib files are unavailable so the tool
+    never fails on a descriptor it can't compute.
+    """
+    try:
+        import os
+        import sys
+
+        from rdkit.Chem import RDConfig
+
+        sa_dir = os.path.join(RDConfig.RDContribDir, "SA_Score")
+        if sa_dir not in sys.path:
+            sys.path.append(sa_dir)
+        import sascorer  # type: ignore  # noqa: E402
+
+        return round(float(sascorer.calculateScore(mol)), 3)
+    except Exception:
+        return 0.0
+
+
 class _RdkitReal:
     name = "rdkit_analyze"
     input_schema = {
@@ -52,7 +75,7 @@ class _RdkitReal:
 
     def _compute_real(self, smiles: str) -> ToolResult:
         from rdkit import Chem
-        from rdkit.Chem import Crippen, Descriptors, QED, Lipinski, rdMolDescriptors
+        from rdkit.Chem import QED, Crippen, Descriptors, Lipinski, rdMolDescriptors
 
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
@@ -69,7 +92,7 @@ class _RdkitReal:
             "logp": round(logp, 3),
             "tpsa": round(rdMolDescriptors.CalcTPSA(mol), 2),
             "mw": round(mw, 2),
-            "sa_score": 0.0,  # placeholder — Ertl SA requires an extra model file
+            "sa_score": _sa_score(mol),  # real Ertl synthetic-accessibility (1=easy…10=hard)
             "lipinski_violations": int(lipinski),
         }
         return ToolResult(tool=self.name, output=out, cached=False)

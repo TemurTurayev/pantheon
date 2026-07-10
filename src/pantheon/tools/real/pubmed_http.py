@@ -38,6 +38,23 @@ def _strip(text: str | None) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _pub_year(entry: ET.Element) -> str:
+    """Best-effort 4-digit publication year from a PubmedArticle entry.
+
+    Prefers ``PubDate/Year``; falls back to the first 4-digit run in a
+    ``MedlineDate`` (e.g. ``2021 Jan-Feb``). Empty string if neither is found.
+    """
+    year_el = entry.find(".//Article/Journal/JournalIssue/PubDate/Year")
+    if year_el is not None and year_el.text:
+        return _strip(year_el.text)
+    medline_el = entry.find(".//Article/Journal/JournalIssue/PubDate/MedlineDate")
+    if medline_el is not None and medline_el.text:
+        m = re.search(r"\d{4}", medline_el.text)
+        if m:
+            return m.group(0)
+    return ""
+
+
 class PubmedHttp:
     name = "pubmed_search"
     input_schema = {
@@ -85,6 +102,7 @@ class PubmedHttp:
                     "pmid": _strip(pmid_el.text if pmid_el is not None else None),
                     "title": _strip(title_el.text if title_el is not None else None),
                     "abstract": _strip(abstract_el.text if abstract_el is not None else None),
+                    "year": _pub_year(entry),
                 }
             )
         return ToolResult(tool=self.name, output={"results": articles}, cached=False)

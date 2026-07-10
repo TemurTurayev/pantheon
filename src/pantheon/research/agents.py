@@ -113,3 +113,20 @@ class SynthesisAgent(_BaseAgent):
                 "Estimate vendor cost for wet-lab validation (Adaptyv Bio).",
             ),
         )
+
+
+def default_agents(registry: ToolRegistry) -> list[_BaseAgent]:
+    """The standard six-agent research panel, wired to ``registry``.
+
+    Only ``LitSearchAgent`` calls a tool (``pubmed_search``); the rest emit
+    structured sections. Pair with ``tools.default_registry()`` for a brief
+    backed by real literature.
+    """
+    return [
+        LitSearchAgent(registry=registry),
+        PriorArtAgent(registry=registry),
+        MechanismAgent(registry=registry),
+        ChemSpaceAgent(registry=registry),
+        FailureAgent(registry=registry),
+        SynthesisAgent(registry=registry),
+    ]
